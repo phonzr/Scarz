@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                             // Add a share button
                                             const button = document.createElement('button');
                                             button.className = 'button';
-                                            button.textContent = 'Share this prank';
+                                            button.textContent = 'Made By @Phonzr';
                                             button.onclick = () => {
                                                 if (navigator.share) {
                                                     navigator.share({
