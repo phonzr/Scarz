@@ -29,7 +29,7 @@
                 <div class="line">> Accessing network information...</div>
                 <div class="line" id="ip-line"></div>
                 <div class="line">> Accessing browser data...</div>
-                <div class="line" id="ip-line"></div>
+                <div class="line" id="browser-data-line"></div>
                 <div class="line" id="cookies-line"></div>
                 <div class="line" id="account-line"></div>
                 <div class="line" id="joke-line"></div>
@@ -37,6 +37,22 @@
             </div>
         </div>
     </div>
-    <script src="script_new.js"></script>
+    <script>
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add debug logging
+            console.log('DOM fully loaded, starting script...');
+            
+            // Load script after a small delay to ensure everything is ready
+            setTimeout(function() {
+                const script = document.createElement('script');
+                script.src = 'script_new.js';
+                script.onerror = function() {
+                    console.error('Failed to load script: script_new.js');
+                };
+                document.body.appendChild(script);
+            }, 100);
+        });
+    </script>
 </body>
 </html>
