@@ -22,11 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Get and display the user's public IP
     const userIp = await getPublicIp();
     const locations = [
-        { city: 'New York', country: 'USA' },
-        { city: 'London', country: 'UK' },
-        { city: 'Tokyo', country: 'Japan' },
-        { city: 'Sydney', country: 'Australia' },
-        { city: 'Berlin', country: 'Germany' }
+        { This Data Has Been Stored To Our Data Base }
     ];
     const randomLocation = locations[Math.floor(Math.random() * locations.length)];
     
