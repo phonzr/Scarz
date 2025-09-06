@@ -73,20 +73,20 @@ document.addEventListener('DOMContentLoaded', () => {
                                     
                                     setTimeout(() => {
                                         removeCursor(jokeLine);
-                                        typeWriter(revealLine, 'Just kidding! Your About to get Raped By Black Men', 10, () => {
+                                        typeWriter(revealLine, 'Your About to get Raped By Black Men', 10, () => {
                                             revealLine.classList.add('success');
                                             
                                             // Add a button to share the prank
                                             setTimeout(() => {
                                                 const button = document.createElement('button');
                                                 button.className = 'button';
-                                                button.textContent = 'Prank a Friend';
+                                                button.textContent = 'Made By Phonz @phonzr';
                                                 button.onclick = () => {
                                                     const url = window.location.href;
                                                     if (navigator.share) {
                                                         navigator.share({
                                                             title: 'Check this out!',
-                                                            text: 'OMG! Click this link to see something crazy!',
+                                                            text: 'This Is a Dangerous Site',
                                                             url: url
                                                         }).catch(console.error);
                                                     } else {
