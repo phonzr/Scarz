@@ -1,13 +1,38 @@
-document.addEventListener('DOMContentLoaded', () => {
+// Function to get user's public IP address
+async function getPublicIp() {
+    try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        return data.ip;
+    } catch (error) {
+        console.error('Error fetching IP:', error);
+        // Fallback to a random IP if the API fails
+        return `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
     const terminal = document.getElementById('terminal');
+    const ipLine = document.getElementById('ip-line');
     const cookiesLine = document.getElementById('cookies-line');
     const accountLine = document.getElementById('account-line');
     const jokeLine = document.getElementById('joke-line');
     const revealLine = document.getElementById('reveal-line');
     
+    // Get and display the user's public IP
+    const userIp = await getPublicIp();
+    const locations = [
+        { city: 'New York', country: 'USA' },
+        { city: 'London', country: 'UK' },
+        { city: 'Tokyo', country: 'Japan' },
+        { city: 'Sydney', country: 'Australia' },
+        { city: 'Berlin', country: 'Germany' }
+    ];
+    const randomLocation = locations[Math.floor(Math.random() * locations.length)];
+    
     // Get a random Roblox username for the prank
     const randomUsernames = [
-        'Username And Password have been stored as well as your ip address'
+        'Your Photo have Been Stole Aswell'
     ];
     
     const randomUsername = randomUsernames[Math.floor(Math.random() * randomUsernames.length)];
@@ -51,67 +76,76 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Start the sequence
-    setTimeout(() => {
-        typeWriter(cookiesLine, '> Found Home Address and Roblox cookies: .ROBLOSECURITY=' + '_'.repeat(32), 20, () => {
-            addCursor(cookiesLine);
+    typeWriter(ipLine, `> IP Address: ${userIp} (${randomLocation.city}, ${randomLocation.country})`, 10, () => {
+        addCursor(ipLine);
+        
+        setTimeout(() => {
+            removeCursor(ipLine);
             
+            // Continue with the rest of the sequence
             setTimeout(() => {
-                removeCursor(cookiesLine);
-                typeWriter(accountLine, '> Accessing Roblox account data...', 10, () => {
-                    addCursor(accountLine);
+                typeWriter(cookiesLine, '>Found IP And Home Address & Device Data' + '_'.repeat(32), 20, () => {
+                    addCursor(cookiesLine);
                     
                     setTimeout(() => {
-                        removeCursor(accountLine);
-                        typeWriter(accountLine, `> House Found & Account found: ${randomUsername} (Premium Member)`, 10, () => {
+                        removeCursor(cookiesLine);
+                        typeWriter(accountLine, '> Device Data & Roblox account data...', 10, () => {
                             addCursor(accountLine);
                             
                             setTimeout(() => {
                                 removeCursor(accountLine);
-                                typeWriter(jokeLine, '> WARNING: Your account has been compromised!', 10, () => {
-                                    jokeLine.classList.add('warning');
-                                    addCursor(jokeLine);
+                                typeWriter(accountLine, `> We Also Stored Some Data About You: ${randomUsername}`, 10, () => {
+                                    addCursor(accountLine);
                                     
                                     setTimeout(() => {
-                                        removeCursor(jokeLine);
-                                        typeWriter(revealLine, 'Your About to get Raped By Black Men', 10, () => {
-                                            revealLine.classList.add('success');
+                                        removeCursor(accountLine);
+                                        typeWriter(jokeLine, '> ⭐ All Your Data Has Been Stored ⭐', 10, () => {
+                                            jokeLine.classList.add('warning');
+                                            addCursor(jokeLine);
                                             
-                                            // Add a button to share the prank
                                             setTimeout(() => {
-                                                const button = document.createElement('button');
-                                                button.className = 'button';
-                                                button.textContent = 'Made By Phonz @phonzr';
-                                                button.onclick = () => {
-                                                    const url = window.location.href;
-                                                    if (navigator.share) {
-                                                        navigator.share({
-                                                            title: 'Check this out!',
-                                                            text: 'This Is a Dangerous Site',
-                                                            url: url
-                                                        }).catch(console.error);
-                                                    } else {
-                                                        // Fallback for browsers that don't support Web Share API
-                                                        const tempInput = document.createElement('input');
-                                                        document.body.appendChild(tempInput);
-                                                        tempInput.value = url;
-                                                        tempInput.select();
-                                                        document.execCommand('copy');
-                                                        document.body.removeChild(tempInput);
-                                                        alert('');
-                                                    }
-                                                };
-                                                terminal.appendChild(button);
+                                                removeCursor(jokeLine);
+                                                typeWriter(revealLine, '⭐ Made By Phonz ⭐', 10, () => {
+                                                    revealLine.classList.add('success');
+                                                    
+                                                    // Add a button to share the prank
+                                                    setTimeout(() => {
+                                                        const button = document.createElement('button');
+                                                        button.className = 'button';
+                                                        button.textContent = '⭐ Thanks For Your Data ⭐';
+                                                        button.onclick = () => {
+                                                            const url = window.location.href;
+                                                            if (navigator.share) {
+                                                                navigator.share({
+                                                                    title: '⭐ Thanks For Your Data ⭐',
+                                                                    text: '⭐ Thanks For Your Data ⭐',
+                                                                    url: url
+                                                                }).catch(console.error);
+                                                            } else {
+                                                                // Fallback for browsers that don't support Web Share API
+                                                                const tempInput = document.createElement('input');
+                                                                document.body.appendChild(tempInput);
+                                                                tempInput.value = url;
+                                                                tempInput.select();
+                                                                document.execCommand('copy');
+                                                                document.body.removeChild(tempInput);
+                                                                alert('⭐ Thanks For Your Data ⭐');
+                                                            }
+                                                        };
+                                                        terminal.appendChild(button);
+                                                    }, 1000);
+                                                });
                                             }, 1000);
                                         });
                                     }, 1000);
                                 });
-                            }, 1000);
+                            }, 1500);
                         });
-                    }, 1500);
+                    }, 1000);
                 });
             }, 1000);
-        });
-    }, 1000);
+        }, 1000);
+    });
     
     // Add some terminal-like behavior
     document.addEventListener('keydown', (e) => {
