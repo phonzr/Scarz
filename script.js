@@ -1,15 +1,3 @@
-// Function to get user's public IP address
-async function getPublicIp() {
-    try {
-        const response = await fetch('https://api.ipify.org?format=json');
-        const data = await response.json();
-        return data.ip;
-    } catch (error) {
-        console.error('Error fetching IP:', error);
-        // Fallback to a random IP if the API fails
-        return `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
-    }
-}
 
 document.addEventListener('DOMContentLoaded', async () => {
     const terminal = document.getElementById('terminal');
