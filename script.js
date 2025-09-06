@@ -21,10 +21,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Get and display the user's public IP
     const userIp = await getPublicIp();
-    const locations = [
-        { This Data Has Been Stored To Our Data Base }
-    ];
-    const randomLocation = locations[Math.floor(Math.random() * locations.length)];
     
     // Get a random Roblox username for the prank
     const randomUsernames = [
