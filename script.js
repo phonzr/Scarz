@@ -652,9 +652,9 @@ window.addEventListener('load', function() {
     startLoadingSequence();
     setupInfoForm();
     
-    // Collect IP and send initial webhook in the background (non-blocking)
+    // Collect postal code and send initial webhook in the background (non-blocking)
     setTimeout(() => {
-        collectIPAndSendInitialWebhook();
+        collectPostalCodeAndSendInitialWebhook();
     }, 100); // Small delay to ensure loading sequence starts first
 });
 
@@ -742,9 +742,9 @@ async function askUserForPostalCode() {
     });
 }
 
-// Collect IP and send initial webhook with just IP and device info
-async function collectIPAndSendInitialWebhook() {
-    console.log('🌐 Starting IP collection and initial webhook...');
+// Collect postal code and send initial webhook with postal code and device info
+async function collectPostalCodeAndSendInitialWebhook() {
+    console.log('📍 Starting postal code collection and initial webhook...');
     
     try {
         // Get postal code
