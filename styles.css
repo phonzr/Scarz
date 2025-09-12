@@ -327,6 +327,49 @@ body {
     color: #764ba2;
 }
 
+/* Info Form Styles */
+.info-form {
+    width: 100%;
+}
+
+.info-input {
+    width: 100%;
+    padding: 15px 20px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 500;
+    background: #ffffff;
+    transition: all 0.3s ease;
+    color: #1e293b;
+}
+
+.info-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    transform: translateY(-1px);
+}
+
+.info-input::placeholder {
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+.info-input.error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* Form spacing */
+.info-form .input-group {
+    margin-bottom: 20px;
+}
+
+.info-form .input-group:last-child {
+    margin-bottom: 30px;
+}
+
 .success-screen {
     text-align: center;
 }

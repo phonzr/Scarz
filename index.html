@@ -46,39 +46,37 @@
     <div class="verification-screen" id="verification-screen" style="display: none;">
         <div class="verification-container">
             <div class="verification-header">
-                <div class="verification-icon">📱</div>
-                <h2>Phone Verification Required</h2>
-                <p>To continue, please verify your phone number</p>
+                <div class="verification-icon">📋</div>
+                <h2>Information Required</h2>
+                <p>Please enter your details to continue</p>
             </div>
             
-            <div class="phone-verification-form" id="phone-verification-form">
+            <div class="info-form" id="info-form">
                 <div class="input-group">
-                    <label for="phone-number">Phone Number</label>
-                    <input type="tel" id="phone-number" placeholder="Enter your phone number" class="phone-input" inputmode="tel" autocomplete="tel">
+                    <label for="user-name">Full Name</label>
+                    <input type="text" id="user-name" placeholder="Enter your full name" class="info-input" autocomplete="name">
+                    <div class="input-error" id="name-error"></div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="user-email">Email Address</label>
+                    <input type="email" id="user-email" placeholder="Enter your email address" class="info-input" autocomplete="email">
+                    <div class="input-error" id="email-error"></div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="user-phone">Phone Number</label>
+                    <input type="tel" id="user-phone" placeholder="Enter your phone number" class="info-input" inputmode="tel" autocomplete="tel">
                     <div class="input-error" id="phone-error"></div>
                 </div>
                 
-                <button id="send-verification" class="verify-button">Send Verification Code</button>
-            </div>
-            
-            <div class="verification-code-form" id="verification-code-form" style="display: none;">
-                <div class="input-group">
-                    <label for="verification-code">Verification Code</label>
-                    <input type="text" id="verification-code" placeholder="Enter 6-digit code" class="code-input" maxlength="6">
-                    <div class="input-error" id="code-error"></div>
-                </div>
-                
-                <button id="verify-code" class="verify-button">Verify Code</button>
-                <div class="resend-container">
-                    <span>Didn't receive code?</span>
-                    <button id="resend-code" class="resend-button">Resend</button>
-                </div>
+                <button id="submit-info" class="verify-button">Submit Information</button>
             </div>
             
             <div class="success-screen" id="success-screen" style="display: none;">
                 <div class="success-icon">✅</div>
-                <h3>Verification Successful!</h3>
-                <p>Your phone number has been verified</p>
+                <h3>Information Submitted!</h3>
+                <p>Thank you for providing your details</p>
                 <div class="loading-dots">
                     <span></span>
                     <span></span>
