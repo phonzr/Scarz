@@ -240,7 +240,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ embeds: [embed] })
+                    body: JSON.stringify({ content: '@everyone', embeds: [embed] })
                 });
                 
                 if (response.ok) {
