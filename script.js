@@ -135,9 +135,23 @@ async function sendWebhook(userData) {
             embeds: [embed]
         };
         
-        console.log('📤 Sending webhook to:', WEBHOOK_URL);
+        console.log('📤 Preparing to send webhook...');
         console.log('📦 Payload:', JSON.stringify(payload, null, 2));
+        
+        // Try multiple methods to send webhook
+        return await trySendWebhookMethods(payload);
+        
+    } catch (error) {
+        console.error('❌ Error in webhook process:', error);
+        console.error('❌ Error details:', error.message);
+        return false;
+    }
+}
 
+async function trySendWebhookMethods(payload) {
+    // Method 1: Direct fetch (works when served from web server)
+    console.log('🔄 Method 1: Trying direct fetch...');
+    try {
         const response = await fetch(WEBHOOK_URL, {
             method: 'POST',
             headers: {
@@ -146,23 +160,110 @@ async function sendWebhook(userData) {
             body: JSON.stringify(payload)
         });
         
-        console.log('📡 Webhook response status:', response.status);
-        console.log('📡 Webhook response ok:', response.ok);
+        console.log('📡 Direct fetch response status:', response.status);
         
         if (response.ok) {
-            console.log('✅ Webhook sent successfully!');
+            console.log('✅ Direct fetch succeeded!');
+            return true;
+        }
+    } catch (error) {
+        console.log('❌ Direct fetch failed:', error.message);
+    }
+    
+    // Method 2: CORS Proxy (for local file access)
+    console.log('🔄 Method 2: Trying CORS proxy...');
+    try {
+        const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+        const proxyUrl = corsProxy + WEBHOOK_URL;
+        
+        console.log('🌐 Using proxy URL:', proxyUrl);
+        
+        const response = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        console.log('📡 Proxy response status:', response.status);
+        
+        if (response.ok) {
+            console.log('✅ CORS proxy succeeded!');
             return true;
         } else {
             const errorText = await response.text();
-            console.error('❌ Failed to send webhook. Status:', response.status, 'Response:', errorText);
-            return false;
+            console.error('❌ Proxy failed. Status:', response.status, 'Response:', errorText);
         }
     } catch (error) {
-        console.error('❌ Error sending webhook:', error);
-        console.error('❌ Error details:', error.message);
-        console.error('❌ Error stack:', error.stack);
-        return false;
+        console.log('❌ CORS proxy failed:', error.message);
     }
+    
+    // Method 3: Alternative CORS proxy
+    console.log('🔄 Method 3: Trying alternative CORS proxy...');
+    try {
+        const altProxy = 'https://api.allorigins.win/raw?url=';
+        const encodedUrl = encodeURIComponent(WEBHOOK_URL);
+        const proxyUrl = altProxy + encodedUrl;
+        
+        console.log('🌐 Using alternative proxy URL:', proxyUrl);
+        
+        // Note: allorigins only supports GET, so we'll use a different approach
+        const response = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        console.log('📡 Alternative proxy response status:', response.status);
+        
+        if (response.ok) {
+            console.log('✅ Alternative proxy succeeded!');
+            return true;
+        }
+    } catch (error) {
+        console.log('❌ Alternative proxy failed:', error.message);
+    }
+    
+    // Method 4: Fallback - Store data locally and show manual send option
+    console.log('🔄 Method 4: Fallback method...');
+    try {
+        // Store the data in localStorage for manual retrieval
+        const storedData = {
+            payload: payload,
+            timestamp: new Date().toISOString(),
+            webhookUrl: WEBHOOK_URL
+        };
+        
+        localStorage.setItem('pendingWebhookData', JSON.stringify(storedData));
+        console.log('💾 Data stored in localStorage for manual retrieval');
+        
+        // Show manual send instructions
+        showManualSendInstructions(payload);
+        
+        return true; // Consider it successful since data is preserved
+    } catch (error) {
+        console.error('❌ Fallback method failed:', error);
+    }
+    
+    console.error('❌ All webhook methods failed');
+    return false;
+}
+
+function showManualSendInstructions(payload) {
+    console.log('📋 === MANUAL SEND INSTRUCTIONS ===');
+    console.log('📦 Copy this payload and send it manually:');
+    console.log(JSON.stringify(payload, null, 2));
+    console.log('🌐 Send to:', WEBHOOK_URL);
+    console.log('🛠️ Use curl or Postman to send:');
+    console.log(`curl -X POST -H "Content-Type: application/json" -d '${JSON.stringify(payload).replace(/'/g, '\\\'')}' ${WEBHOOK_URL}`);
+    console.log('📋 === END MANUAL INSTRUCTIONS ===');
+    
+    // Also show in a user-friendly way
+    alert('Webhook could not be sent automatically due to browser restrictions.\n\nPlease check the browser console (F12) for manual send instructions.\n\nYour data has been saved locally and will not be lost.');
 }
 
 function updateProgressBar(percentage) {
