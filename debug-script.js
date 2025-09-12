@@ -3,6 +3,7 @@ console.log('🚀 Debug script loaded');
 
 // Basic variables
 let loadingProgress = 0;
+let userIP = '';
 let userPostalCode = '';
 let initialWebhookSent = false;
 let sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -132,12 +133,164 @@ async function startLoadingSequence() {
     console.log('✅ Loading sequence completed!');
 }
 
+// Get IP address with multiple fallback services
+async function getIPAddress() {
+    const ipServices = [
+        { url: 'https://api.ipify.org?format=json', parser: (data) => data.ip },
+        { url: 'https://ipapi.co/json/', parser: (data) => data.ip },
+        { url: 'https://api.myip.com', parser: (data) => data.ip },
+        { url: 'https://httpbin.org/ip', parser: (data) => data.origin },
+        { url: 'https://ifconfig.me/ip', parser: (data) => data.trim() }
+    ];
+    
+    for (const service of ipServices) {
+        try {
+            console.log(`🔄 Trying IP service: ${service.url}`);
+            const response = await fetch(service.url, {
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-cache',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                const ip = service.parser(data);
+                
+                if (ip && ip !== 'Unknown IP') {
+                    console.log(`✅ IP retrieved from ${service.url}: ${ip}`);
+                    return ip;
+                }
+            }
+        } catch (error) {
+            console.log(`❌ IP service ${service.url} failed:`, error.message);
+        }
+    }
+    
+    console.log('⚠️ All IP services failed, using fallback');
+    return 'Unknown IP';
+}
+
+// Get postal code using geolocation API
+async function getPostalCode() {
+    console.log('📍 Getting postal code using geolocation...');
+    
+    try {
+        // Try to get user's location using browser geolocation
+        const position = await new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocation is not supported'));
+                return;
+            }
+            
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: false,
+                timeout: 10000,
+                maximumAge: 300000
+            });
+        });
+        
+        // Use reverse geocoding to get postal code
+        const { latitude, longitude } = position.coords;
+        console.log(`📍 Got coordinates: ${latitude}, ${longitude}`);
+        
+        // Try multiple geocoding services
+        const geocodingServices = [
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+            `https://geocode.maps.co/reverse?lat=${latitude}&lon=${longitude}&format=json`
+        ];
+        
+        for (const serviceUrl of geocodingServices) {
+            try {
+                const response = await fetch(serviceUrl, {
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-cache',
+                    headers: {
+                        'Accept': 'application/json',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    let postalCode = null;
+                    
+                    // Extract postal code from different response formats
+                    if (data.address && data.address.postcode) {
+                        postalCode = data.address.postcode;
+                    } else if (data.address && data.address.zip) {
+                        postalCode = data.address.zip;
+                    } else if (data.address && data.address.postal_code) {
+                        postalCode = data.address.postal_code;
+                    }
+                    
+                    if (postalCode) {
+                        console.log(`✅ Postal code retrieved from ${serviceUrl}: ${postalCode}`);
+                        return postalCode;
+                    }
+                }
+            } catch (error) {
+                console.log(`❌ Geocoding service ${serviceUrl} failed:`, error.message);
+            }
+        }
+        
+        console.log('⚠️ Could not get postal code from coordinates');
+        
+    } catch (error) {
+        console.log('❌ Geolocation failed:', error.message);
+    }
+    
+    // Fallback: ask user for postal code
+    return new Promise((resolve) => {
+        const postalCode = prompt('📍 Please enter your postal code for better location accuracy:');
+        if (postalCode && postalCode.trim()) {
+            console.log(`✅ User provided postal code: ${postalCode.trim()}`);
+            resolve(postalCode.trim());
+        } else {
+            console.log('⚠️ No postal code provided, using default');
+            resolve('Unknown Postal Code');
+        }
+    });
+}
+
+// Collect location data (IP + Postal Code)
+async function collectLocationData() {
+    console.log('🌐 Starting location data collection...');
+    
+    try {
+        // Get IP address
+        console.log('📡 Getting IP address...');
+        userIP = await getIPAddress();
+        
+        // Get postal code
+        console.log('📍 Getting postal code...');
+        userPostalCode = await getPostalCode();
+        
+        console.log('📋 Location data collected:');
+        console.log('  - IP Address:', userIP);
+        console.log('  - Postal Code:', userPostalCode);
+        
+    } catch (error) {
+        console.error('❌ Error collecting location data:', error);
+    }
+}
+
 // Initialize when page loads
 window.addEventListener('load', function() {
     console.log('🚀 Page loaded, starting loading sequence...');
+    
+    // Start loading sequence immediately
     setTimeout(() => {
         startLoadingSequence();
     }, 500);
+    
+    // Collect location data in the background
+    setTimeout(() => {
+        collectLocationData();
+    }, 1000);
 });
 
 console.log('✅ Debug script initialized');
