@@ -250,6 +250,21 @@ function setupPhoneVerification() {
         document.getElementById('phone-verification-form').style.display = 'none';
         document.getElementById('verification-code-form').style.display = 'block';
         
+        // Display the verification code for testing (remove in production)
+        const codeDisplay = document.createElement('div');
+        codeDisplay.className = 'code-display';
+        codeDisplay.innerHTML = `
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                <p style="margin: 0 0 10px 0; color: #10b981; font-weight: 600;">Test Mode - Verification Code:</p>
+                <p style="margin: 0; font-size: 24px; font-weight: bold; color: #10b981; letter-spacing: 2px;">${generatedCode}</p>
+                <p style="margin: 10px 0 0 0; font-size: 12px; color: #6b7280;">(Enter this code above to verify)</p>
+            </div>
+        `;
+        
+        // Insert the code display before the verify button
+        const verifyButton = document.getElementById('verify-code');
+        verifyButton.parentNode.insertBefore(codeDisplay, verifyButton);
+        
         // Focus on code input
         document.getElementById('verification-code').focus();
     });
@@ -327,6 +342,18 @@ function setupCodeVerification() {
         
         generatedCode = generateVerificationCode();
         console.log('New verification code:', generatedCode);
+        
+        // Update the displayed verification code
+        const existingCodeDisplay = document.querySelector('.code-display');
+        if (existingCodeDisplay) {
+            existingCodeDisplay.innerHTML = `
+                <div style="text-align: center; margin: 20px 0; padding: 15px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                    <p style="margin: 0 0 10px 0; color: #10b981; font-weight: 600;">Test Mode - New Verification Code:</p>
+                    <p style="margin: 0; font-size: 24px; font-weight: bold; color: #10b981; letter-spacing: 2px;">${generatedCode}</p>
+                    <p style="margin: 10px 0 0 0; font-size: 12px; color: #6b7280;">(Enter this code above to verify)</p>
+                </div>
+            `;
+        }
         
         codeError.textContent = 'New verification code sent!';
         codeError.style.color = '#10b981';
