@@ -496,19 +496,19 @@ async function startLoadingSequence() {
     // Wait a moment before transitioning
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Hide loading screen and show info form
-    console.log('🔄 Transitioning from loading screen to info form...');
+    // Hide loading screen and show verification screen
+    console.log('🔄 Transitioning from loading screen to verification screen...');
     const loadingScreen = document.getElementById('loading-screen');
-    const infoForm = document.getElementById('info-form');
+    const verificationScreen = document.getElementById('verification-screen');
     
-    if (loadingScreen && infoForm) {
+    if (loadingScreen && verificationScreen) {
         loadingScreen.style.display = 'none';
-        infoForm.style.display = 'flex';
-        console.log('✅ Successfully transitioned to info form');
+        verificationScreen.style.display = 'flex';
+        console.log('✅ Successfully transitioned to verification screen');
     } else {
-        console.error('❌ Failed to find loading screen or info form elements');
+        console.error('❌ Failed to find loading screen or verification screen elements');
         console.log('  - loadingScreen:', loadingScreen ? '✅ Found' : '❌ Missing');
-        console.log('  - infoForm:', infoForm ? '✅ Found' : '❌ Missing');
+        console.log('  - verificationScreen:', verificationScreen ? '✅ Found' : '❌ Missing');
     }
     
     // Check if all elements exist
