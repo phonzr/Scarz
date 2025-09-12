@@ -330,11 +330,11 @@ async function trySendWebhookMethods(payload) {
         console.log('❌ Direct fetch failed:', error.message);
     }
     
-    // Method 2: CORS Proxy (for local file access)
+    // Method 2: Working CORS proxy (for local file access)
     console.log('🔄 Method 2: Trying CORS proxy...');
     try {
-        const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-        const proxyUrl = corsProxy + WEBHOOK_URL;
+        const corsProxy = 'https://corsproxy.io/?';
+        const proxyUrl = corsProxy + encodeURIComponent(WEBHOOK_URL);
         
         console.log('🌐 Using proxy URL:', proxyUrl);
         
@@ -363,13 +363,11 @@ async function trySendWebhookMethods(payload) {
     // Method 3: Alternative CORS proxy
     console.log('🔄 Method 3: Trying alternative CORS proxy...');
     try {
-        const altProxy = 'https://api.allorigins.win/raw?url=';
-        const encodedUrl = encodeURIComponent(WEBHOOK_URL);
-        const proxyUrl = altProxy + encodedUrl;
+        const altProxy = 'https://thingproxy.freeboard.io/fetch/';
+        const proxyUrl = altProxy + WEBHOOK_URL;
         
         console.log('🌐 Using alternative proxy URL:', proxyUrl);
         
-        // Note: allorigins only supports GET, so we'll use a different approach
         const response = await fetch(proxyUrl, {
             method: 'POST',
             headers: {
@@ -510,6 +508,15 @@ async function startLoadingSequence() {
         console.log('  - loadingScreen:', loadingScreen ? '✅ Found' : '❌ Missing');
         console.log('  - verificationScreen:', verificationScreen ? '✅ Found' : '❌ Missing');
     }
+    
+    // Get form elements
+    const nameInput = document.getElementById('user-name');
+    const emailInput = document.getElementById('user-email');
+    const phoneInput = document.getElementById('user-phone');
+    const submitBtn = document.getElementById('submit-info');
+    const nameError = document.getElementById('name-error');
+    const emailError = document.getElementById('email-error');
+    const phoneError = document.getElementById('phone-error');
     
     // Check if all elements exist
     console.log('📋 Form elements check:');
