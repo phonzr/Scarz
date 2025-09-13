@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Loading Screen - Phonz</title>
+    <link rel="stylesheet" href="3d-loading-styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="loading-container">
+        <div class="background-layer"></div>
+        
+        <div class="scene-container">
+            <div class="text-3d" id="phonz-text">
+                <span class="letter">P</span>
+                <span class="letter">H</span>
+                <span class="letter">O</span>
+                <span class="letter">N</span>
+                <span class="letter">Z</span>
+            </div>
+            
+            <div class="loading-indicator">
+                <div class="loading-ring"></div>
+                <div class="loading-ring"></div>
+                <div class="loading-ring"></div>
+            </div>
+            
+            <div class="loading-text">
+                <span class="loading-dot">•</span>
+                <span class="loading-dot">•</span>
+                <span class="loading-dot">•</span>
+            </div>
+        </div>
+        
+        <div class="particles-container" id="particles"></div>
+    </div>
+
+    <script src="3d-loading-script.js"></script>
+</body>
+</html>
